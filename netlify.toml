@@ -1,0 +1,18 @@
+# Configuración de despliegue en Netlify
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+# Las funciones no se cachean
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Cache-Control = "no-store"
+
+# Seguridad básica de cabeceras
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

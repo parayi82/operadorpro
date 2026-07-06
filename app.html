@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi panel — OperadorPro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container">
+    <a class="logo" href="index.html"><span class="chip">OP</span> OperadorPro</a>
+    <nav id="app-nav">
+      <a href="#/dashboard">Cursos</a>
+      <a href="#/certificados">Certificados</a>
+      <a href="#/perfil">Perfil</a>
+      <a href="#" id="logout-link" class="hidden">Salir</a>
+    </nav>
+  </div>
+</header>
+
+<main class="app-main" id="app">
+  <p style="text-align:center;padding:60px 0;color:var(--gris-texto)">Cargando…</p>
+</main>
+
+<!-- Contenedor oculto para generar el QR del certificado -->
+<div id="qr-holder" class="hidden" aria-hidden="true"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/courses-data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
