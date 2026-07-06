@@ -7,6 +7,6 @@
 const CONFIG = {
   SUPABASE_URL: "https://siqkkcltkrmdexxlcuat.supabase.co",   // <-- Reemplazar
   SUPABASE_ANON_KEY: "sb_publishable_DY9H6ZXr8AzRWUYIiXInYg_ENWORovL",             // <-- Reemplazar
-  SITE_URL: "https://TU-SITIO.netlify.app",          // <-- Reemplazar (sin / final)
+  SITE_URL: "https://operadorpro.netlify.app",          // <-- Reemplazar (sin / final)
   PRECIO_MENSUAL: "$149 MXN/mes"
 };
