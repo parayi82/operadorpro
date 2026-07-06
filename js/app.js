@@ -18,6 +18,23 @@ const $app = document.getElementById("app");
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const course = (id) => COURSES.find((c) => c.id === id);
 const isSubscribed = () => state.profile?.subscription_status === "active";
+const isProtegido = () => isSubscribed() && state.profile?.plan === "protegido";
+const daysUntil = (dateStr) => dateStr ? Math.ceil((new Date(dateStr) - new Date()) / 86400000) : null;
+
+function expirationAlerts() {
+  const p = state.profile || {};
+  const items = [
+    { label: "tu licencia federal", days: daysUntil(p.licencia_vigencia) },
+    { label: "tu examen psicofísico", days: daysUntil(p.examen_medico_vigencia) }
+  ].filter((x) => x.days !== null && x.days <= 60);
+  if (!items.length) return "";
+  const rows = items.map((x) => x.days < 0
+    ? `<strong>${x.label}</strong> está VENCIDA desde hace ${Math.abs(x.days)} días — no puedes operar en regla; renuévala cuanto antes.`
+    : `<strong>${x.label}</strong> vence en ${x.days} días — agenda tu renovación ya (los trámites se saturan).`
+  ).map((t) => `<p style="margin:4px 0">⚠️ ${t}</p>`).join("");
+  return `<div class="locked-banner" style="margin-bottom:22px;background:var(--ambar)">${rows}
+    <a href="#/perfil" style="color:#fff">Actualizar fechas en mi perfil →</a></div>`;
+}
 const lessonsDone = (courseId) => state.progress.filter((p) => p.course_id === courseId).map((p) => p.lesson_id);
 const certFor = (courseId) => state.certificates.find((c) => c.course_id === courseId);
 const fmtDate = (d) => new Date(d).toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" });
@@ -133,9 +150,23 @@ function renderDashboard() {
   setNav(true);
   const subBanner = isSubscribed() ? "" : `
     <div class="locked-banner" style="margin-bottom:26px">
-      <div><strong>Modo gratuito:</strong> puedes leer la primera lección de cada curso. Para el curso completo, el examen y tu certificado, activa tu suscripción.</div>
-      <button class="btn btn-primary" id="go-checkout">Activar por ${esc(CONFIG.PRECIO_MENSUAL)}</button>
+      <div><strong>Modo gratuito:</strong> puedes leer la primera lección de cada curso. Elige un plan para desbloquear cursos completos, exámenes y certificados:</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" data-plan="esencial">Esencial · ${esc(CONFIG.PLANES.esencial.precio)}</button>
+        <button class="btn btn-green" data-plan="protegido" style="border:2px solid var(--amarillo)">Protegido · ${esc(CONFIG.PLANES.protegido.precio)} — incluye abogado por WhatsApp</button>
+      </div>
     </div>`;
+
+  const waCard = isProtegido() ? `
+    <div class="card" style="margin-bottom:26px;background:var(--verde);color:#fff">
+      <span class="badge" style="background:var(--amarillo);color:var(--asfalto)">⚖️</span>
+      <h3 style="color:#fff">Tu abogado, a un mensaje</h3>
+      <p style="color:#E4EFE9">Consulta laboral, de tránsito o de percances con un abogado real. Respuesta en menos de 24 horas hábiles. Hasta 3 consultas al mes incluidas en tu plan.</p>
+      <a class="btn btn-primary" target="_blank" rel="noopener" href="https://wa.me/${esc(CONFIG.WHATSAPP_ASESORIA)}?text=${encodeURIComponent("Hola, soy " + (state.profile?.full_name || "") + ", suscriptor Protegido de OperadorPro (ID " + (state.session?.user?.id || "").slice(0, 8) + "). Mi consulta: ")}">Consultar por WhatsApp</a>
+    </div>` : isSubscribed() ? `
+    <div class="locked-banner" style="margin-bottom:26px">
+      <div>⚖️ <strong>Asesoría legal por WhatsApp:</strong> el plan Protegido incluye consultas con un abogado real (laboral, tránsito, percances). Cambia de plan desde <a href="#/perfil" style="color:var(--amarillo)">tu perfil</a> → Administrar suscripción.</div>
+    </div>` : "";
 
   const cards = COURSES.map((c) => {
     const done = lessonsDone(c.id).length;
@@ -159,11 +190,12 @@ function renderDashboard() {
   $app.innerHTML = `
     <h1 class="view-title">Hola, ${esc((state.profile?.full_name || "operador").split(" ")[0])}</h1>
     <p class="view-sub">Tu ruta de certificación. Cada curso aprobado suma un certificado verificable a tu perfil.</p>
+    ${expirationAlerts()}
     ${subBanner}
+    ${waCard}
     <div class="grid grid-3">${cards}</div>`;
 
-  const btn = document.getElementById("go-checkout");
-  if (btn) btn.onclick = startCheckout;
+  $app.querySelectorAll("[data-plan]").forEach((b) => (b.onclick = () => startCheckout(b.dataset.plan)));
 }
 
 // ---------- Vista: Curso ----------
@@ -195,7 +227,7 @@ function renderCurso(courseId) {
         : `<p style="color:var(--gris-texto)">Completa las ${c.lessons.length} lecciones para desbloquear el examen.</p>`}
     </div>`;
 
-  $app.querySelectorAll("[data-locked]").forEach((b) => (b.onclick = startCheckout));
+  $app.querySelectorAll("[data-locked]").forEach((b) => (b.onclick = () => { location.hash = "#/dashboard"; }));
 }
 
 // ---------- Vista: Lección ----------
@@ -376,10 +408,13 @@ function renderPerfil() {
   setNav(true);
   const p = state.profile || {};
   const subLabel = { active: "Activa ✓", inactive: "Sin activar", past_due: "Pago pendiente", canceled: "Cancelada" }[p.subscription_status] || p.subscription_status;
+  const planLabel = { esencial: "Esencial", protegido: "Protegido ⚖️", none: "—" }[p.plan] || p.plan;
 
   $app.innerHTML = `
     <h1 class="view-title">Tu perfil de operador</h1>
-    <p class="view-sub">Estos datos aparecen en tus certificados y en tu expediente profesional. Suscripción: <strong>${esc(subLabel)}</strong>${!isSubscribed() ? ` — <a href="#" id="perfil-checkout">activar ahora</a>` : ""}</p>
+    <p class="view-sub">Estos datos aparecen en tus certificados y en tu expediente profesional.<br>
+    Suscripción: <strong>${esc(subLabel)}</strong> · Plan: <strong>${esc(planLabel)}</strong>
+    ${isSubscribed() ? ` — <a href="#" id="perfil-portal">Administrar suscripción</a>` : ` — <a href="#/dashboard" >elegir un plan</a>`}</p>
     <div class="lesson-body">
       <div class="profile-grid">
         <div>
@@ -409,6 +444,10 @@ function renderPerfil() {
           <input id="pf-vig" type="date" value="${esc(p.licencia_vigencia || "")}">
         </div>
         <div>
+          <label for="pf-med">Vigencia del examen psicofísico</label>
+          <input id="pf-med" type="date" value="${esc(p.examen_medico_vigencia || "")}">
+        </div>
+        <div>
           <label for="pf-exp">Años de experiencia</label>
           <input id="pf-exp" type="number" min="0" max="60" value="${esc(p.experiencia_anios ?? 0)}">
         </div>
@@ -421,8 +460,20 @@ function renderPerfil() {
       <button class="btn btn-green" id="pf-save" style="margin-top:8px">Guardar cambios</button>
     </div>`;
 
-  const co = document.getElementById("perfil-checkout");
-  if (co) co.onclick = (e) => { e.preventDefault(); startCheckout(); };
+  const portal = document.getElementById("perfil-portal");
+  if (portal) portal.onclick = async (e) => {
+    e.preventDefault();
+    portal.textContent = "Abriendo…";
+    try {
+      const res = await fetch("/.netlify/functions/create-portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + state.session.access_token }
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error || "Error");
+      location.href = data.url;
+    } catch (err) { alert(err.message); portal.textContent = "Administrar suscripción"; }
+  };
 
   document.getElementById("pf-save").onclick = async () => {
     const msg = document.getElementById("pf-msg");
@@ -434,6 +485,7 @@ function renderPerfil() {
       licencia_numero: document.getElementById("pf-lic").value.trim(),
       licencia_categoria: document.getElementById("pf-cat").value || null,
       licencia_vigencia: document.getElementById("pf-vig").value || null,
+      examen_medico_vigencia: document.getElementById("pf-med").value || null,
       experiencia_anios: parseInt(document.getElementById("pf-exp").value, 10) || 0,
       unidades: document.getElementById("pf-unidades").value.split(",").map((s) => s.trim()).filter(Boolean),
       updated_at: new Date().toISOString()
@@ -463,7 +515,7 @@ async function renderSuscripcionExito() {
 }
 
 // ---------- Stripe checkout ----------
-async function startCheckout() {
+async function startCheckout(plan) {
   try {
     const res = await fetch("/.netlify/functions/create-checkout", {
       method: "POST",
@@ -471,7 +523,7 @@ async function startCheckout() {
         "Content-Type": "application/json",
         Authorization: "Bearer " + state.session.access_token
       },
-      body: JSON.stringify({})
+      body: JSON.stringify({ plan: plan || "esencial" })
     });
     const data = await res.json();
     if (!res.ok || !data.url) throw new Error(data.error || "No se pudo iniciar el pago");
