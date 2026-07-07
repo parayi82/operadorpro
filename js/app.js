@@ -635,8 +635,15 @@ sb.auth.onAuthStateChange(async (_event, session) => {
 });
 
 (async () => {
-  const { data } = await sb.auth.getSession();
-  state.session = data.session;
-  if (state.session) await loadUserData();
+  try {
+    const sessionPromise = sb.auth.getSession();
+    const timeout = new Promise((resolve) => setTimeout(() => resolve({ data: { session: null }, timedOut: true }), 4000));
+    const result = await Promise.race([sessionPromise, timeout]);
+    state.session = result?.data?.session || null;
+    if (state.session) await loadUserData();
+  } catch (e) {
+    console.error("Arranque:", e);
+    state.session = null;
+  }
   router();
 })();
