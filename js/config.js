@@ -1,12 +1,17 @@
 // ============================================================
-// OperadorPro - Configuración pública del cliente
-// Estas llaves SÍ pueden ir en el frontend (anon key con RLS).
-// Las llaves secretas van SOLO en variables de entorno de Netlify.
+// OperadorPro - Configuración pública del cliente (v2)
 // ============================================================
 
 const CONFIG = {
-  SUPABASE_URL: "https://siqkkcltkrmdexxlcuat.supabase.co",   // <-- Reemplazar
-  SUPABASE_ANON_KEY: "sb_publishable_DY9H6ZXr8AzRWUYIiXInYg_ENWORovL",             // <-- Reemplazar
-  SITE_URL: "https://operadorpro.netlify.app",          // <-- Reemplazar (sin / final)
-  PRECIO_MENSUAL: "$149 MXN/mes"
+  SUPABASE_URL: "https://siqkkcltkrmdexxlcuat.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_DY9H6ZXr8AzRWUYIiXInYg_ENWORovL",
+  SITE_URL: "https://operadorpro.netlify.app",
+
+  // WhatsApp de asesoría legal: 521 + 10 dígitos, sin + ni espacios
+  WHATSAPP_ASESORIA: "521XXXXXXXXXX",
+
+  PLANES: {
+    esencial:  { nombre: "Esencial",  precio: "$149 MXN/mes" },
+    protegido: { nombre: "Protegido", precio: "$349 MXN/mes" }
+  }
 };
