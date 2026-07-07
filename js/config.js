@@ -8,7 +8,7 @@ const CONFIG = {
   SITE_URL: "https://operadorpro.netlify.app",
 
   // WhatsApp de asesoría legal: 521 + 10 dígitos, sin + ni espacios
-  WHATSAPP_ASESORIA: "521XXXXXXXXXX",
+  WHATSAPP_ASESORIA: "5213339263817",
 
   PLANES: {
     esencial:  { nombre: "Esencial",  precio: "$149 MXN/mes" },
