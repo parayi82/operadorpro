@@ -12,6 +12,7 @@ const state = {
   session: null,
   companies: [],       // [{id, name, role}]
   companyId: null,
+  company: null,       // fila completa de la empresa activa (incluye subscription_status)
   vehicles: [],
   drivers: [],
   complianceDocs: [],
@@ -56,13 +57,15 @@ async function uploadToBucket(bucket, file) {
 // ---------- Carga de datos de la empresa activa ----------
 async function loadCompanyData() {
   if (!state.companyId) return;
-  const [{ data: vehicles }, { data: drivers }, { data: trips }, { data: clients }, { data: invoices }] = await Promise.all([
+  const [{ data: company }, { data: vehicles }, { data: drivers }, { data: trips }, { data: clients }, { data: invoices }] = await Promise.all([
+    sb.from("companies").select("id, name, plan, subscription_status").eq("id", state.companyId).single(),
     sb.from("vehicles").select("*").eq("company_id", state.companyId).order("economic_number"),
     sb.from("drivers").select("*").eq("company_id", state.companyId).order("full_name"),
     sb.from("trip_reconciliation_v").select("*").eq("company_id", state.companyId).order("started_at", { ascending: false }),
     sb.from("clients").select("*").eq("company_id", state.companyId).order("name"),
     sb.from("invoice_status_v").select("*").eq("company_id", state.companyId).order("due_date")
   ]);
+  state.company = company || null;
   state.vehicles = vehicles || [];
   state.drivers = drivers || [];
   state.trips = trips || [];
@@ -234,9 +237,26 @@ async function renderFlota() {
       <p>${esc(d.phone)} · ${esc(d.status)}</p>
     </div>`).join("") || "<p>Aún no registras choferes.</p>";
 
+  const myRole = state.companies.find((c) => c.id === state.companyId)?.role;
+  const subStatus = state.company?.subscription_status || "inactive";
+  const subBadgeClass = subStatus === "active" ? "pagada" : subStatus === "past_due" ? "pendiente" : "vencida";
+  const subLabel = { active: "activa", past_due: "pago pendiente", canceled: "cancelada", inactive: "sin activar" }[subStatus] || subStatus;
+  const billingCard = `
+    <div class="fleet-card" style="margin-bottom:18px">
+      <h3>Suscripción — ${esc(state.company?.name || "")}</h3>
+      <p>Estatus: <span class="badge ${subBadgeClass}">${subLabel}</span> · ${state.vehicles.length} unidad(es) activa(s)</p>
+      ${myRole === "owner" ? `
+        <div class="form-msg" id="sub-msg"></div>
+        ${subStatus === "active"
+          ? `<button id="sub-manage" class="btn-primary">Gestionar mi suscripción</button>`
+          : `<button id="sub-activate" class="btn-primary">Activar suscripción</button>`}
+      ` : `<p style="color:var(--gris-texto)">Solo el dueño de la empresa puede gestionar la facturación.</p>`}
+    </div>`;
+
   $app.innerHTML = `
     <div class="fleet-shell">
       ${tabs("/flota")}
+      ${billingCard}
       <h2>Mi flota</h2>
       <div class="fleet-grid">${vehicleRows}</div>
 
@@ -286,6 +306,21 @@ async function renderFlota() {
         <tbody>${docsRows}</tbody>
       </table>
     </div>`;
+
+  if (myRole === "owner") {
+    const subBtn = document.getElementById(subStatus === "active" ? "sub-manage" : "sub-activate");
+    subBtn.onclick = async () => {
+      const msg = document.getElementById("sub-msg");
+      try {
+        msg.textContent = "Abriendo Stripe…";
+        const { url } = await callFn(subStatus === "active" ? "fleet-billing-portal" : "fleet-create-checkout", {
+          method: "POST",
+          body: { company_id: state.companyId }
+        });
+        location.href = url;
+      } catch (e) { msg.textContent = e.message; msg.className = "form-msg error"; }
+    };
+  }
 
   document.getElementById("v-submit").onclick = async () => {
     const msg = document.getElementById("v-msg");

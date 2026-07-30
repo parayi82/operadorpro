@@ -157,7 +157,40 @@ usa **Twilio Sandbox** en su lugar (`WHATSAPP_PROVIDER=twilio` +
 permite texto libre a números que se unieron previamente, sin revisión de
 plantillas — bueno para validar el flujo, no para producción real.
 
-### 4. Primer uso
+### 5. Cobro por suscripción de flota (Stripe)
+
+Cobro **por unidad activa al mes**, replicando el flujo de Stripe Checkout
+que ya usa el panel de certificación, pero como producto/precio separado.
+
+1. Si aún no ejecutaste `schema_fleet.sql` con las columnas de facturación
+   (`stripe_customer_id`, `stripe_subscription_id`, `subscription_status` en
+   `companies`), corre `supabase/migration_billing.sql` — es la migración
+   incremental, segura de ejecutar aunque ya tengas datos.
+2. En Stripe **Products > Add product**: "Suscripción OperadorPro Flota",
+   precio recurrente mensual. Recomendado: configúralo con **Tiered
+   pricing** (graduated o volume) para que el descuento por tamaño de flota
+   ($250-350 → $150-180 MXN/unidad según el volumen) lo aplique Stripe solo
+   según la `quantity` que le mandamos — el código nunca calcula tiers.
+   Copia el `price_...` → `STRIPE_FLEET_PRICE_ID`.
+3. En Stripe **Developers > Webhooks > Add endpoint** (uno **nuevo**,
+   distinto al de certificación):
+   - URL: `https://TU-SITIO.netlify.app/.netlify/functions/fleet-stripe-webhook`
+   - Eventos: `checkout.session.completed`, `customer.subscription.updated`,
+     `customer.subscription.deleted`, `invoice.payment_failed`
+   - Copia el `whsec_...` → `STRIPE_FLEET_WEBHOOK_SECRET` en Netlify.
+4. Variables en Netlify: `STRIPE_FLEET_PRICE_ID`, `STRIPE_FLEET_WEBHOOK_SECRET`
+   (reutiliza el `STRIPE_SECRET_KEY` que ya tienes de certificación — misma
+   cuenta de Stripe).
+5. En el panel (`fleet.html` → pestaña Flota), el **owner** de la empresa ve
+   una tarjeta de "Suscripción" con botón **Activar suscripción** (abre
+   Stripe Checkout) o **Gestionar mi suscripción** (abre el Billing Portal)
+   una vez activa.
+6. La cantidad de la suscripción se ajusta sola cuando das de alta una
+   unidad nueva (`_lib/stripeSync.js`, best-effort: si Stripe falla, el alta
+   de la unidad NO se bloquea — solo se loggea para revisar y sincronizar
+   manualmente si hace falta).
+
+### 6. Primer uso
 1. Entra a `fleet.html`, regístrate o inicia sesión (mismo usuario/contraseña
    que el panel de certificación si ya tienes cuenta).
 2. Crea tu empresa (te vuelves `owner` automáticamente).
@@ -202,15 +235,25 @@ operadorpro/
 │   ├── fleet-create-invoice.js
 │   ├── fleet-register-payment.js
 │   ├── fleet-send-payment-reminders.js  (cron)
+│   ├── fleet-create-driver.js
+│   ├── fleet-create-checkout.js         Stripe Checkout de flota (por unidad)
+│   ├── fleet-billing-portal.js          Stripe Billing Portal
+│   ├── fleet-stripe-webhook.js          Sincroniza subscription_status de companies
 │   ├── domain/                 Reglas de negocio puras (sin I/O)
 │   └── _lib/                   Auth/RBAC, rate limit, validación, logging,
-│                                errores, respuesta, caché, notificaciones, OCR
+│                                errores, respuesta, caché, notificaciones, OCR,
+│                                Stripe (cliente + sync de cantidad)
+├── scripts/check-rpc-contracts.js  Verifica admin.rpc(...) vs schema_fleet.sql (CI)
+├── test/domain.test.js         Pruebas unitarias de domain/* (node:test)
+├── .github/workflows/ci.yml    Sintaxis + contratos RPC + pruebas en cada push/PR
 ├── supabase/schema.sql         Tablas de certificación, trigger de perfil y RLS
 ├── supabase/schema_fleet.sql   Tablas de flota, RBAC multi-tenant, RLS,
 │                                funciones transaccionales, buckets de Storage
+├── supabase/hotfix_actor_uid.sql    Migración: auth.uid() → actor explícito en RPCs
+├── supabase/migration_billing.sql  Migración: columnas de Stripe en companies
 ├── ARCHITECTURE.md             Arquitectura, seguridad, escalabilidad y caché
 ├── netlify.toml
-├── package.json
+├── package.json                 npm run verify → sintaxis + contratos RPC + tests
 └── .env.example
 ```
 
