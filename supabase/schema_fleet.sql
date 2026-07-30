@@ -82,8 +82,20 @@ create policy "empresa: leer si soy miembro" on public.companies
 create policy "empresa: crear como dueño" on public.companies
   for insert with check (owner_user_id = auth.uid());
 
+-- El estado de suscripción y los IDs de Stripe NO pueden cambiar por esta
+-- vía (RLS con el JWT del owner/admin): solo los escribe el webhook de
+-- Stripe con la service role key. Sin este "with check", cualquier owner
+-- podría marcarse subscription_status='active' directo por la API de
+-- Supabase sin pagar (mismo patrón de protección que profiles.subscription_status
+-- en schema.sql).
 create policy "empresa: actualizar solo owner/admin" on public.companies
-  for update using (public.fn_is_company_member(id, array['owner','admin']));
+  for update using (public.fn_is_company_member(id, array['owner','admin']))
+  with check (
+    public.fn_is_company_member(id, array['owner','admin'])
+    and subscription_status = (select c.subscription_status from public.companies c where c.id = companies.id)
+    and coalesce(stripe_customer_id, '') = coalesce((select c.stripe_customer_id from public.companies c where c.id = companies.id), '')
+    and coalesce(stripe_subscription_id, '') = coalesce((select c.stripe_subscription_id from public.companies c where c.id = companies.id), '')
+  );
 
 create policy "membresias: leer de mi empresa" on public.company_members
   for select using (public.fn_is_company_member(company_id, null));
