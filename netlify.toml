@@ -3,16 +3,30 @@
   publish = "."
   functions = "netlify/functions"
 
-# Las funciones no se cachean
+# Funciones programadas (cron) del módulo de flota — corren en
+# background, nunca bloquean una petición de usuario.
+[functions."fleet-send-compliance-reminders"]
+  schedule = "0 13 * * *" # 07:00 hora CDMX, recordatorios de vencimiento
+
+[functions."fleet-send-payment-reminders"]
+  schedule = "0 14 * * *" # 08:00 hora CDMX, recordatorios de cobranza
+
+# Las funciones no se cachean (excepto los endpoints públicos que
+# fijan su propio Cache-Control corto, ej. verify-certificate y
+# fleet-vehicle-qr)
 [[headers]]
   for = "/.netlify/functions/*"
   [headers.values]
     Cache-Control = "no-store"
 
-# Seguridad básica de cabeceras
+# Seguridad de cabeceras (aplican a todo el sitio, incluidos los
+# paneles del módulo de flota)
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
+    Permissions-Policy = "geolocation=(self), camera=(), microphone=(), payment=()"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co https://*.netlify.app; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"

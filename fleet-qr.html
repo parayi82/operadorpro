@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificación de unidad — OperadorPro</title>
+  <meta name="description" content="Estatus de cumplimiento documental de una unidad de carga, para mostrar en inspecciones viales.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/fleet.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container">
+    <a class="logo" href="index.html"><span class="chip">OP</span> OperadorPro</a>
+    <nav><a href="index.html">Inicio</a></nav>
+  </div>
+</header>
+
+<div class="qr-public">
+  <h1 class="view-title">Estatus de la unidad</h1>
+  <div id="qr-result"><p style="color:var(--gris-texto)">Consultando…</p></div>
+</div>
+
+<hr class="lane">
+<footer>
+  <div class="container">OperadorPro · Esta verificación consulta directamente el registro de cumplimiento de la empresa transportista.</div>
+</footer>
+
+<script src="js/fleet-qr.js"></script>
+</body>
+</html>
