@@ -12,9 +12,12 @@ const schema = z.object({ invoice_id: schemas.uuid });
 
 exports.handler = withHandler(
   { name: "fleet-register-payment", methods: ["POST"] },
-  async ({ event, admin }) => {
+  async ({ event, admin, user }) => {
     const { invoice_id } = validate(schema, parseJsonBody(event));
-    const { data, error } = await admin.rpc("fn_register_payment", { p_invoice_id: invoice_id });
+    const { data, error } = await admin.rpc("fn_register_payment", {
+      p_actor_user_id: user.id,
+      p_invoice_id: invoice_id
+    });
     if (error) throw error;
     return ok({ invoice: data });
   }

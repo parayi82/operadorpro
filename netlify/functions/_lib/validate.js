@@ -37,6 +37,16 @@ const schemas = {
     year: z.number().int().min(1980).max(2100).optional()
   }),
 
+  createDriver: z.object({
+    company_id: z.string().uuid(),
+    full_name: z.string().trim().min(2).max(120),
+    phone: z.string().trim().regex(/^\+?[0-9]{10,15}$/, "Teléfono inválido (10 a 15 dígitos)"),
+    curp: z.string().trim().length(18).optional(),
+    license_number: z.string().trim().max(30).optional(),
+    license_category: z.enum(["A", "B", "C", "D", "E", "F"]).optional(),
+    license_expiry: z.string().date().optional()
+  }),
+
   createComplianceDoc: z.object({
     company_id: z.string().uuid(),
     vehicle_id: z.string().uuid().optional(),

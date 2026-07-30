@@ -17,6 +17,7 @@ exports.handler = withHandler(
     await requireCompanyRole(admin, user.id, input.company_id, ["owner", "admin"]);
 
     const { data, error } = await admin.rpc("fn_create_invoice_with_reminders", {
+      p_actor_user_id: user.id,
       p_company_id: input.company_id,
       p_client_id: input.client_id,
       p_trip_id: input.trip_id || null,

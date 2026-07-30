@@ -228,6 +228,12 @@ async function renderFlota() {
       <a href="fleet-qr.html?id=${v.id}" target="_blank">Ver QR de verificación →</a>
     </div>`).join("") || "<p>Aún no registras unidades.</p>";
 
+  const driverCards = state.drivers.map((d) => `
+    <div class="fleet-card">
+      <h3>${esc(d.full_name)}</h3>
+      <p>${esc(d.phone)} · ${esc(d.status)}</p>
+    </div>`).join("") || "<p>Aún no registras choferes.</p>";
+
   $app.innerHTML = `
     <div class="fleet-shell">
       ${tabs("/flota")}
@@ -240,6 +246,17 @@ async function renderFlota() {
         <label>Placa</label><input id="v-plate">
         <div class="form-msg" id="v-msg"></div>
         <button id="v-submit" class="btn-primary">Guardar unidad</button>
+      </div>
+
+      <h3 style="margin-top:26px">Choferes</h3>
+      <div class="fleet-grid">${driverCards}</div>
+      <div class="fleet-card">
+        <label>Nombre completo</label><input id="dr-name">
+        <label>Teléfono (10 dígitos, para recibir avisos por WhatsApp)</label><input id="dr-phone" placeholder="5512345678">
+        <label>Número de licencia (opcional)</label><input id="dr-license">
+        <label>Vencimiento de licencia (opcional)</label><input id="dr-license-exp" type="date">
+        <div class="form-msg" id="dr-msg"></div>
+        <button id="dr-submit" class="btn-primary">Guardar chofer</button>
       </div>
 
       <h3 style="margin-top:26px">Subir documento de cumplimiento</h3>
@@ -280,6 +297,24 @@ async function renderFlota() {
           company_id: state.companyId,
           economic_number: document.getElementById("v-eco").value.trim(),
           plate: document.getElementById("v-plate").value.trim()
+        }
+      });
+      renderFlota();
+    } catch (e) { msg.textContent = e.message; msg.className = "form-msg error"; }
+  };
+
+  document.getElementById("dr-submit").onclick = async () => {
+    const msg = document.getElementById("dr-msg");
+    try {
+      msg.textContent = "Guardando…";
+      await callFn("fleet-create-driver", {
+        method: "POST",
+        body: {
+          company_id: state.companyId,
+          full_name: document.getElementById("dr-name").value.trim(),
+          phone: document.getElementById("dr-phone").value.trim(),
+          license_number: document.getElementById("dr-license").value.trim() || undefined,
+          license_expiry: document.getElementById("dr-license-exp").value || undefined
         }
       });
       renderFlota();

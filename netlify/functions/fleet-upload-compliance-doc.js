@@ -22,6 +22,7 @@ exports.handler = withHandler(
     await requireCompanyRole(admin, user.id, input.company_id, ["owner", "admin"]);
 
     const { data, error } = await admin.rpc("fn_create_compliance_document", {
+      p_actor_user_id: user.id,
       p_company_id: input.company_id,
       p_vehicle_id: input.vehicle_id || null,
       p_driver_id: input.driver_id || null,

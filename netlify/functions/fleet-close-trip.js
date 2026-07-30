@@ -12,11 +12,14 @@ const schema = z.object({ trip_id: schemas.uuid });
 
 exports.handler = withHandler(
   { name: "fleet-close-trip", methods: ["POST"] },
-  async ({ event, admin }) => {
+  async ({ event, admin, user }) => {
     const { trip_id } = validate(schema, parseJsonBody(event));
     // RBAC y "trip not found" se validan dentro de fn_close_trip_and_reconcile
     // (mismo patrón que fn_register_payment): una sola transacción autoritativa.
-    const { data, error } = await admin.rpc("fn_close_trip_and_reconcile", { p_trip_id: trip_id });
+    const { data, error } = await admin.rpc("fn_close_trip_and_reconcile", {
+      p_actor_user_id: user.id,
+      p_trip_id: trip_id
+    });
     if (error) throw error;
     return ok({ trip: data });
   }

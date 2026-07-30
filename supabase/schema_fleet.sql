@@ -33,6 +33,10 @@ create index if not exists idx_members_user on public.company_members (user_id);
 create index if not exists idx_members_company_role on public.company_members (company_id, role);
 
 -- Helper: ¿pertenece el usuario actual a la empresa, con alguno de estos roles?
+-- Se apoya en auth.uid(), por lo que SOLO es válido cuando quien ejecuta la
+-- consulta es el propio usuario autenticado (RLS de políticas, llamadas desde
+-- el cliente con su JWT). auth.uid() es NULL cuando la llamada llega vía la
+-- service role key (backend) — para eso existe fn_actor_has_role de abajo.
 create or replace function public.fn_is_company_member(p_company_id uuid, p_roles text[])
 returns boolean
 language sql stable security definer set search_path = public as $$
@@ -40,6 +44,23 @@ language sql stable security definer set search_path = public as $$
     select 1 from public.company_members m
     where m.company_id = p_company_id
       and m.user_id = auth.uid()
+      and m.status = 'active'
+      and (p_roles is null or m.role = any(p_roles))
+  );
+$$;
+
+-- Helper: ¿el usuario indicado explícitamente (p_user_id) pertenece a la
+-- empresa con alguno de estos roles? Usar SIEMPRE que la verificación se haga
+-- desde una función de Postgres invocada por el backend con la service role
+-- key (donde auth.uid() no está disponible) — el backend ya validó el JWT del
+-- usuario y pasa su id explícito.
+create or replace function public.fn_actor_has_role(p_user_id uuid, p_company_id uuid, p_roles text[])
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.company_members m
+    where m.company_id = p_company_id
+      and m.user_id = p_user_id
       and m.status = 'active'
       and (p_roles is null or m.role = any(p_roles))
   );
@@ -200,7 +221,11 @@ create policy "alertas: leer via documento" on public.compliance_alerts
   );
 
 -- Al insertar un documento, se programan sus 3 recordatorios automáticamente (transacción única)
+-- p_actor_user_id: id del usuario ya autenticado por el backend (auth.uid()
+-- NO está disponible aquí porque la llamada llega vía service role key).
+drop function if exists public.fn_create_compliance_document(uuid, uuid, uuid, text, text, text, date, date);
 create or replace function public.fn_create_compliance_document(
+  p_actor_user_id uuid,
   p_company_id uuid, p_vehicle_id uuid, p_driver_id uuid, p_doc_type text,
   p_doc_number text, p_file_url text, p_issued_at date, p_expires_at date
 ) returns public.compliance_documents
@@ -208,14 +233,14 @@ language plpgsql security definer set search_path = public as $$
 declare
   v_doc public.compliance_documents;
 begin
-  if not public.fn_is_company_member(p_company_id, array['owner','admin']) then
+  if not public.fn_actor_has_role(p_actor_user_id, p_company_id, array['owner','admin']) then
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
   insert into public.compliance_documents
     (company_id, vehicle_id, driver_id, doc_type, doc_number, file_url, issued_at, expires_at, created_by)
   values
-    (p_company_id, p_vehicle_id, p_driver_id, p_doc_type, p_doc_number, p_file_url, p_issued_at, p_expires_at, auth.uid())
+    (p_company_id, p_vehicle_id, p_driver_id, p_doc_type, p_doc_number, p_file_url, p_issued_at, p_expires_at, p_actor_user_id)
   returning * into v_doc;
 
   insert into public.compliance_alerts (document_id, days_before, scheduled_for)
@@ -294,7 +319,9 @@ create policy "gastos: insertar via viaje (choferes incluidos)" on public.expens
   );
 
 -- Cerrar viaje: transacción única (evita cierre parcial)
-create or replace function public.fn_close_trip_and_reconcile(p_trip_id uuid)
+-- p_actor_user_id: ver nota en fn_create_compliance_document.
+drop function if exists public.fn_close_trip_and_reconcile(uuid);
+create or replace function public.fn_close_trip_and_reconcile(p_actor_user_id uuid, p_trip_id uuid)
 returns public.trip_reconciliation_v
 language plpgsql security definer set search_path = public as $$
 declare
@@ -303,7 +330,7 @@ declare
 begin
   select * into v_trip from public.trips where id = p_trip_id for update;
   if v_trip.id is null then raise exception 'trip not found'; end if;
-  if not public.fn_is_company_member(v_trip.company_id, array['owner','admin']) then
+  if not public.fn_actor_has_role(p_actor_user_id, v_trip.company_id, array['owner','admin']) then
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
@@ -461,7 +488,9 @@ create policy "recordatorios: leer via factura" on public.payment_reminders
   );
 
 -- Registrar pago: transacción única (marca pagada + cancela recordatorios pendientes)
-create or replace function public.fn_register_payment(p_invoice_id uuid)
+-- p_actor_user_id: ver nota en fn_create_compliance_document.
+drop function if exists public.fn_register_payment(uuid);
+create or replace function public.fn_register_payment(p_actor_user_id uuid, p_invoice_id uuid)
 returns public.freight_invoices
 language plpgsql security definer set search_path = public as $$
 declare
@@ -469,7 +498,7 @@ declare
 begin
   select * into v_invoice from public.freight_invoices where id = p_invoice_id for update;
   if v_invoice.id is null then raise exception 'invoice not found'; end if;
-  if not public.fn_is_company_member(v_invoice.company_id, array['owner','admin']) then
+  if not public.fn_actor_has_role(p_actor_user_id, v_invoice.company_id, array['owner','admin']) then
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
@@ -520,7 +549,10 @@ create policy "trip-evidence: acceso por membresia"
   );
 
 -- Al crear una factura, programa recordatorios semanales desde el vencimiento
+-- p_actor_user_id: ver nota en fn_create_compliance_document.
+drop function if exists public.fn_create_invoice_with_reminders(uuid, uuid, uuid, text, numeric, text, date, date);
 create or replace function public.fn_create_invoice_with_reminders(
+  p_actor_user_id uuid,
   p_company_id uuid, p_client_id uuid, p_trip_id uuid, p_folio text,
   p_amount numeric, p_pod_url text, p_issued_at date, p_due_date date
 ) returns public.freight_invoices
@@ -528,7 +560,7 @@ language plpgsql security definer set search_path = public as $$
 declare
   v_invoice public.freight_invoices;
 begin
-  if not public.fn_is_company_member(p_company_id, array['owner','admin']) then
+  if not public.fn_actor_has_role(p_actor_user_id, p_company_id, array['owner','admin']) then
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
