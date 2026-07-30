@@ -37,6 +37,12 @@ const schemas = {
     year: z.number().int().min(1980).max(2100).optional()
   }),
 
+  updateVehicleStatus: z.object({
+    company_id: z.string().uuid(),
+    vehicle_id: z.string().uuid(),
+    status: z.enum(["activa", "taller", "baja"])
+  }),
+
   createDriver: z.object({
     company_id: z.string().uuid(),
     full_name: z.string().trim().min(2).max(120),

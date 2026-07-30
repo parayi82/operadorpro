@@ -236,6 +236,7 @@ operadorpro/
 │   ├── fleet-register-payment.js
 │   ├── fleet-send-payment-reminders.js  (cron)
 │   ├── fleet-create-driver.js
+│   ├── fleet-update-vehicle-status.js   Activa/taller/baja (resincroniza Stripe)
 │   ├── fleet-create-checkout.js         Stripe Checkout de flota (por unidad)
 │   ├── fleet-billing-portal.js          Stripe Billing Portal
 │   ├── fleet-stripe-webhook.js          Sincroniza subscription_status de companies

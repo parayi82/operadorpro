@@ -227,7 +227,13 @@ async function renderFlota() {
   const vehicleRows = state.vehicles.map((v) => `
     <div class="fleet-card">
       <h3>${esc(v.economic_number)}</h3>
-      <p>Placa: ${esc(v.plate)} · ${esc(v.status)}</p>
+      <p>Placa: ${esc(v.plate)}</p>
+      <label>Estatus</label>
+      <select data-vehicle-status="${v.id}">
+        <option value="activa" ${v.status === "activa" ? "selected" : ""}>Activa</option>
+        <option value="taller" ${v.status === "taller" ? "selected" : ""}>En taller</option>
+        <option value="baja" ${v.status === "baja" ? "selected" : ""}>Baja</option>
+      </select>
       <a href="fleet-qr.html?id=${v.id}" target="_blank">Ver QR de verificación →</a>
     </div>`).join("") || "<p>Aún no registras unidades.</p>";
 
@@ -321,6 +327,21 @@ async function renderFlota() {
       } catch (e) { msg.textContent = e.message; msg.className = "form-msg error"; }
     };
   }
+
+  $app.querySelectorAll("[data-vehicle-status]").forEach((select) => {
+    select.onchange = async () => {
+      try {
+        await callFn("fleet-update-vehicle-status", {
+          method: "POST",
+          body: { company_id: state.companyId, vehicle_id: select.dataset.vehicleStatus, status: select.value }
+        });
+        renderFlota();
+      } catch (e) {
+        alert(e.message);
+        renderFlota();
+      }
+    };
+  });
 
   document.getElementById("v-submit").onclick = async () => {
     const msg = document.getElementById("v-msg");
