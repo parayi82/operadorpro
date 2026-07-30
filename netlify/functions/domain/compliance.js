@@ -27,4 +27,17 @@ function reminderMessage({ docType, expiresAt, unitLabel }) {
   return `⚠️ OperadorPro: el ${label} de ${unitLabel} vence el ${expiresAt}. Renuévalo para evitar arrastre/corralón.`;
 }
 
-module.exports = { semaforo, reminderMessage, DOC_TYPE_LABELS };
+// Nombre exacto de la plantilla aprobada en Meta WhatsApp Manager. Cuerpo
+// sugerido (variables en el mismo orden que templateParams):
+// "OperadorPro: el {{1}} de {{2}} vence el {{3}}. Renueva a tiempo para
+// evitar arrastre o corralón."
+const COMPLIANCE_REMINDER_TEMPLATE = "operadorpro_vencimiento_documento";
+
+function reminderTemplate({ docType, expiresAt, unitLabel }) {
+  return {
+    templateName: COMPLIANCE_REMINDER_TEMPLATE,
+    templateParams: [DOC_TYPE_LABELS[docType] || "Documento", unitLabel, expiresAt]
+  };
+}
+
+module.exports = { semaforo, reminderMessage, reminderTemplate, DOC_TYPE_LABELS, COMPLIANCE_REMINDER_TEMPLATE };

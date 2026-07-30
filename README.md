@@ -103,6 +103,60 @@ Ya configuradas en `netlify.toml`:
 `fleet-send-payment-reminders` (08:00 hora CDMX). Netlify las despliega
 automáticamente como *Scheduled Functions* al hacer push.
 
+### 4. WhatsApp real (Meta Cloud API)
+
+Los recordatorios (vencimiento de documentos, cobranza) son mensajes que
+**tu empresa inicia** — WhatsApp exige que este tipo de mensaje use una
+**plantilla pre-aprobada**, nunca texto libre (el texto libre solo es válido
+si el destinatario te escribió primero en las últimas 24h). El código ya
+está listo para esto (`_lib/notify.js` → `sendReminder`); falta la parte que
+solo se hace desde la cuenta de Meta:
+
+1. **Crea la app**: entra a https://developers.facebook.com/apps → Create
+   App → tipo "Business". Dentro de la app, agrega el producto **WhatsApp**.
+2. **Número de prueba o número propio**:
+   - Para probar ya: Meta te da un número de prueba gratis y puedes
+     verificar hasta 5 números destinatarios (tu celular, el del chofer de
+     prueba, etc.) en **WhatsApp > API Setup**.
+   - Para producción: verifica tu propio número de WhatsApp Business ahí
+     mismo (requiere un número que no esté ya activo en la app de WhatsApp
+     normal).
+3. **Token permanente**: el token temporal de "API Setup" dura 24h. Para
+   producción, crea un **System User** en Meta Business Suite (Configuración
+   del negocio > Usuarios > Usuarios del sistema), asígnale el activo de
+   WhatsApp con permiso `whatsapp_business_messaging`, y genera un token sin
+   expiración desde ahí.
+4. **Copia el Phone Number ID** (no el número de teléfono) desde
+   **WhatsApp > API Setup**.
+5. **Crea las 3 plantillas** en **WhatsApp Manager > Message Templates >
+   Create Template** (categoría "Utility", idioma español MX). Usa
+   exactamente estos nombres y cuerpos (las `{{n}}` son las variables):
+
+   | Nombre exacto | Cuerpo |
+   |---|---|
+   | `operadorpro_vencimiento_documento` | `OperadorPro: el {{1}} de {{2}} vence el {{3}}. Renueva a tiempo para evitar arrastre o corralón.` |
+   | `operadorpro_pago_proximo` | `OperadorPro: tu factura del viaje {{1}} por ${{2}} MXN vence el {{3}}.` |
+   | `operadorpro_pago_vencido` | `OperadorPro: tu factura del viaje {{1}} por ${{2}} MXN tiene {{3}} día(s) de retraso. Vencimiento: {{4}}.` |
+
+   Meta revisa cada plantilla (usualmente minutos a un par de horas). Hasta
+   que estén **Approved**, el envío fallará — el recordatorio se marca
+   `fallido` en la base y se reintenta en el siguiente corte del cron sin
+   romper nada.
+6. **Variables en Netlify**: `WHATSAPP_PROVIDER=meta`, `WHATSAPP_META_TOKEN`
+   (el token permanente), `WHATSAPP_META_PHONE_ID`, y opcionalmente
+   `WHATSAPP_META_TEMPLATE_LANG` si aprobaste las plantillas en un idioma
+   distinto a `es_MX`.
+7. **Prueba rápida** sin esperar al cron: invoca la función programada a
+   mano (`curl -X POST https://TU-PREVIEW.netlify.app/.netlify/functions/fleet-send-compliance-reminders`)
+   después de crear un documento con vencimiento cercano y un chofer con
+   teléfono verificado en Meta.
+
+Si prefieres probar más rápido sin esperar la aprobación de plantillas,
+usa **Twilio Sandbox** en su lugar (`WHATSAPP_PROVIDER=twilio` +
+`TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`/`TWILIO_WHATSAPP_FROM`): el sandbox
+permite texto libre a números que se unieron previamente, sin revisión de
+plantillas — bueno para validar el flujo, no para producción real.
+
 ### 4. Primer uso
 1. Entra a `fleet.html`, regístrate o inicia sesión (mismo usuario/contraseña
    que el panel de certificación si ya tienes cuenta).

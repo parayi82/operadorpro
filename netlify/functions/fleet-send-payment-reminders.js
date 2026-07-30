@@ -6,8 +6,8 @@
 // ============================================================
 
 const { getSupabaseAdmin } = require("./_lib/supabaseAdmin");
-const { sendWhatsApp } = require("./_lib/notify");
-const { reminderMessage } = require("./domain/invoicing");
+const { sendReminder } = require("./_lib/notify");
+const { reminderMessage, reminderTemplate } = require("./domain/invoicing");
 const logger = require("./_lib/logger");
 
 exports.handler = async () => {
@@ -41,12 +41,17 @@ exports.handler = async () => {
     }
 
     const daysOverdue = Math.max(0, Math.floor((new Date(today) - new Date(invoice.due_date)) / 86_400_000));
-    const message = reminderMessage({
+    const freeformText = reminderMessage({
+      folio: invoice.folio, amount: invoice.amount, dueDate: invoice.due_date, daysOverdue
+    });
+    const { templateName, templateParams } = reminderTemplate({
       folio: invoice.folio, amount: invoice.amount, dueDate: invoice.due_date, daysOverdue
     });
 
     const phone = invoice.clients?.contact_phone;
-    const result = phone ? await sendWhatsApp(phone, message) : { sent: false, reason: "no_recipient" };
+    const result = phone
+      ? await sendReminder(phone, { freeformText, templateName, templateParams })
+      : { sent: false, reason: "no_recipient" };
 
     await admin
       .from("payment_reminders")

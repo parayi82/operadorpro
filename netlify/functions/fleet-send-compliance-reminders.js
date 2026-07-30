@@ -9,8 +9,8 @@
 // ============================================================
 
 const { getSupabaseAdmin } = require("./_lib/supabaseAdmin");
-const { sendWhatsApp } = require("./_lib/notify");
-const { reminderMessage } = require("./domain/compliance");
+const { sendReminder } = require("./_lib/notify");
+const { reminderMessage, reminderTemplate } = require("./domain/compliance");
 const logger = require("./_lib/logger");
 
 exports.handler = async () => {
@@ -45,13 +45,16 @@ exports.handler = async () => {
       ? `la unidad ${doc.vehicles.economic_number}`
       : (doc.drivers?.full_name || "tu operador");
 
-    const message = reminderMessage({ docType: doc.doc_type, expiresAt: doc.expires_at, unitLabel });
+    const freeformText = reminderMessage({ docType: doc.doc_type, expiresAt: doc.expires_at, unitLabel });
+    const { templateName, templateParams } = reminderTemplate({ docType: doc.doc_type, expiresAt: doc.expires_at, unitLabel });
 
     // Se notifica al chofer si el documento es suyo, y siempre se
     // recomienda notificar también al dueño (fuera del alcance de
     // este MVP: requiere tabla de teléfono de contacto del dueño).
     const targetPhone = doc.drivers?.phone;
-    const result = targetPhone ? await sendWhatsApp(targetPhone, message) : { sent: false, reason: "no_recipient" };
+    const result = targetPhone
+      ? await sendReminder(targetPhone, { freeformText, templateName, templateParams })
+      : { sent: false, reason: "no_recipient" };
 
     await admin
       .from("compliance_alerts")
