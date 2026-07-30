@@ -77,6 +77,30 @@ jsPDF + QR.
 
 ## Módulo de Flota — pasos adicionales de despliegue
 
+> **⚠️ Si tu proyecto Supabase ya corrió una versión anterior de
+> `schema_fleet.sql`** (por ejemplo, ya diste de alta empresa/unidades),
+> ejecuta estos 3 archivos en el SQL Editor **en este orden** antes de
+> seguir usando el panel — corrigen bugs de seguridad reales encontrados
+> y arreglados la noche del 29-30 de julio. Son idempotentes (seguros de
+> correr aunque ya los hayas ejecutado):
+> 1. `supabase/hotfix_actor_uid.sql` — sin esto, subir documentos de
+>    cumplimiento y crear facturas fallaba con error 500.
+> 2. `supabase/hotfix_tenant_isolation.sql` — sin esto, una empresa podía
+>    adjuntar un documento de cumplimiento falso a la unidad de OTRA
+>    empresa (visible en su QR público) o facturar contra un cliente que
+>    no era suyo.
+> 3. `supabase/migration_billing.sql` (agrega columnas de Stripe a
+>    `companies`) **seguido de** `supabase/hotfix_billing_rls.sql`
+>    (protege esas columnas — sin esto, un owner podía activarse la
+>    suscripción gratis llamando directo a la API de Supabase). Si nunca
+>    activaste el cobro por Stripe puedes saltarte estos dos por ahora,
+>    pero corre `hotfix_billing_rls.sql` de todos modos en cuanto
+>    ejecutes `migration_billing.sql`.
+>
+> Un proyecto que ejecute `schema_fleet.sql` **desde cero, tal como está
+> ahora en esta rama**, ya incluye los 4 fixes — no necesita ninguno de
+> estos archivos sueltos.
+
 ### 1. Ejecutar el esquema de flota
 En **Supabase > SQL Editor**, ejecuta `supabase/schema_fleet.sql` completo
 (después de `schema.sql`). Crea tablas, RLS multi-tenant, funciones
