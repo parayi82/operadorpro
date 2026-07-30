@@ -89,6 +89,21 @@ async function loadMemberships() {
 function setNav(loggedIn) {
   document.getElementById("logout-link").classList.toggle("hidden", !loggedIn);
   document.querySelectorAll("#app-nav a:not(#logout-link)").forEach((a) => a.classList.toggle("hidden", !loggedIn));
+  renderCompanySwitcher(loggedIn);
+}
+
+// ---------- Selector de empresa (si el usuario pertenece a más de una) ----------
+function renderCompanySwitcher(loggedIn) {
+  const $sw = document.getElementById("company-switcher");
+  if (!loggedIn || state.companies.length <= 1) { $sw.classList.add("hidden"); return; }
+  $sw.classList.remove("hidden");
+  $sw.innerHTML = state.companies
+    .map((c) => `<option value="${c.id}" ${c.id === state.companyId ? "selected" : ""}>${esc(c.name)}</option>`)
+    .join("");
+  $sw.onchange = () => {
+    state.companyId = $sw.value;
+    router();
+  };
 }
 
 // ---------- Router ----------
