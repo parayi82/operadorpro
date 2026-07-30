@@ -13,6 +13,7 @@
 const { withHandler } = require("./_lib/handler");
 const { validate, parseJsonBody, schemas } = require("./_lib/validate");
 const { requireCompanyRole } = require("./_lib/auth");
+const { assertBelongsToCompany } = require("./_lib/tenant");
 const { created } = require("./_lib/response");
 const { evaluate, missingRequirements } = require("./domain/inspections");
 const { ValidationError } = require("./_lib/errors");
@@ -23,6 +24,9 @@ exports.handler = withHandler(
   async ({ event, admin, user }) => {
     const input = validate(schemas.createInspection, parseJsonBody(event));
     await requireCompanyRole(admin, user.id, input.company_id, null); // cualquier miembro (chofer incluido)
+    await assertBelongsToCompany(admin, "vehicles", input.vehicle_id, input.company_id, "La unidad");
+    await assertBelongsToCompany(admin, "drivers", input.driver_id, input.company_id, "El chofer");
+    if (input.trip_id) await assertBelongsToCompany(admin, "trips", input.trip_id, input.company_id, "El viaje");
 
     const missing = missingRequirements(input.photos, input.checklist);
     if (missing.missingPhotos.length || missing.missingItems.length) {

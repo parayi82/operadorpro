@@ -5,11 +5,14 @@
 //
 // Cualquier miembro de la empresa (incluido el chofer autenticado
 // con su propia cuenta) puede registrar un gasto sobre un viaje de
-// su empresa — la política RLS "gastos: insertar via viaje" ya
-// restringe esto a miembros activos de esa empresa.
+// su empresa. IMPORTANTE: esta función usa el cliente admin (service
+// role key), que IGNORA RLS por completo — la pertenencia a la empresa
+// se valida aquí explícitamente con requireCompanyRole, no se puede
+// asumir que la política RLS "gastos: insertar via viaje" la aplique.
 // ============================================================
 
 const { withHandler } = require("./_lib/handler");
+const { requireCompanyRole } = require("./_lib/auth");
 const { validate, parseJsonBody, schemas } = require("./_lib/validate");
 const { created } = require("./_lib/response");
 const { NotFoundError, ForbiddenError } = require("./_lib/errors");
@@ -22,14 +25,18 @@ exports.handler = withHandler(
   async ({ event, admin, user }) => {
     const input = validate(schemas.createExpense, parseJsonBody(event));
 
-    // Verifica pertenencia del viaje a una empresa donde el usuario es miembro
-    // (RLS lo re-verifica en el INSERT; esto da un 403/404 explícito antes).
     const { data: trip } = await admin
       .from("trips")
       .select("id, company_id, budget_amount, status")
       .eq("id", input.trip_id)
       .maybeSingle();
     if (!trip) throw new NotFoundError("Viaje no encontrado");
+
+    // Se valida DESPUÉS de resolver el viaje (para no revelar si un
+    // trip_id existe a alguien fuera de la empresa) y ANTES de tocar
+    // la tabla de gastos: sin esto, cualquier usuario autenticado de
+    // cualquier empresa podría inyectar gastos en el viaje de otra.
+    await requireCompanyRole(admin, user.id, trip.company_id, null);
     if (trip.status !== "abierto") throw new ForbiddenError("El viaje ya está cerrado");
 
     const ocr = await extractReceipt(input.receipt_url);

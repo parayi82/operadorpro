@@ -5,6 +5,7 @@
 
 const { withHandler } = require("./_lib/handler");
 const { requireCompanyRole } = require("./_lib/auth");
+const { assertBelongsToCompany } = require("./_lib/tenant");
 const { validate, parseJsonBody, z } = require("./_lib/validate");
 const { created } = require("./_lib/response");
 
@@ -22,6 +23,8 @@ exports.handler = withHandler(
   async ({ event, admin, user }) => {
     const input = validate(schema, parseJsonBody(event));
     await requireCompanyRole(admin, user.id, input.company_id, ["owner", "admin"]);
+    await assertBelongsToCompany(admin, "vehicles", input.vehicle_id, input.company_id, "La unidad");
+    await assertBelongsToCompany(admin, "drivers", input.driver_id, input.company_id, "El chofer");
 
     const { data, error } = await admin.from("trips").insert(input).select().single();
     if (error) throw error;

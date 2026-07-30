@@ -244,6 +244,22 @@ begin
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
+  -- El actor tiene rol en p_company_id, pero eso no garantiza que
+  -- p_vehicle_id/p_driver_id (IDs que manda el cliente) sean realmente
+  -- de esa empresa: sin esto, la Empresa A podría adjuntar documentos
+  -- falsos a una unidad de la Empresa B (visible en su QR público).
+  if p_vehicle_id is not null and not exists (
+    select 1 from public.vehicles v where v.id = p_vehicle_id and v.company_id = p_company_id
+  ) then
+    raise exception 'vehicle does not belong to company' using errcode = '42501';
+  end if;
+
+  if p_driver_id is not null and not exists (
+    select 1 from public.drivers d where d.id = p_driver_id and d.company_id = p_company_id
+  ) then
+    raise exception 'driver does not belong to company' using errcode = '42501';
+  end if;
+
   insert into public.compliance_documents
     (company_id, vehicle_id, driver_id, doc_type, doc_number, file_url, issued_at, expires_at, created_by)
   values
@@ -569,6 +585,20 @@ declare
 begin
   if not public.fn_actor_has_role(p_actor_user_id, p_company_id, array['owner','admin']) then
     raise exception 'forbidden' using errcode = '42501';
+  end if;
+
+  -- p_client_id/p_trip_id son IDs que manda el cliente: verificar que
+  -- pertenezcan a p_company_id evita facturar/asociar datos de otra empresa.
+  if not exists (
+    select 1 from public.clients c where c.id = p_client_id and c.company_id = p_company_id
+  ) then
+    raise exception 'client does not belong to company' using errcode = '42501';
+  end if;
+
+  if p_trip_id is not null and not exists (
+    select 1 from public.trips t where t.id = p_trip_id and t.company_id = p_company_id
+  ) then
+    raise exception 'trip does not belong to company' using errcode = '42501';
   end if;
 
   insert into public.freight_invoices
