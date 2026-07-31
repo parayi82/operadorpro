@@ -19,6 +19,14 @@
   [headers.values]
     Cache-Control = "no-store"
 
+# El service worker SIEMPRE se revalida (nunca cache-first): el sitio
+# cambia seguido y con caché de CDN el navegador podría tardar en
+# notar una versión nueva del propio sw.js.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
 # Seguridad de cabeceras (aplican a todo el sitio, incluidos los
 # paneles del módulo de flota)
 [[headers]]

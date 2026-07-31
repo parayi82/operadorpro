@@ -214,7 +214,31 @@ que ya usa el panel de certificación, pero como producto/precio separado.
    de la unidad NO se bloquea — solo se loggea para revisar y sincronizar
    manualmente si hace falta).
 
-### 6. Primer uso
+### 6. Instalar como app en el celular (PWA)
+
+El sitio ya es una **Progressive Web App**: en Android/Chrome aparece
+"Instalar app" (o se agrega solo al menú), y en iPhone/Safari se agrega a
+la pantalla de inicio manualmente. Una vez instalada abre en pantalla
+completa, sin barra del navegador, con ícono propio.
+
+- **Android (Chrome)**: entra a `fleet.html`, toca el menú ⋮ → **"Instalar
+  app"** (o aparece un banner automático). También funciona igual para
+  `app.html` (panel de certificación).
+- **iPhone/iPad (Safari)**: entra a `fleet.html` (o `app.html`), toca el
+  botón de compartir (cuadro con flecha ↑) → **"Agregar a inicio"**.
+  Safari ignora el prompt automático de Android pero sí respeta el ícono
+  y el modo pantalla completa vía las etiquetas `apple-mobile-web-app-*`
+  ya incluidas.
+- El ícono (`icons/icon-*.png`) usa el mismo monograma "OP" del logo del
+  sitio — generado sin depender de herramientas externas de imagen, ver
+  `scripts/generate-icons.js` (solo hace falta volver a correrlo si cambia
+  el diseño del logo).
+- `sw.js` (service worker) usa estrategia **"red primero, caché de
+  respaldo"** — nunca sirve una versión vieja del panel si hay internet;
+  el caché solo entra si el celular se queda sin señal a media carretera.
+  Nunca cachea llamadas a `/.netlify/functions/*` ni a Supabase.
+
+### 7. Primer uso
 1. Entra a `fleet.html`, regístrate o inicia sesión (mismo usuario/contraseña
    que el panel de certificación si ya tienes cuenta).
 2. Crea tu empresa (te vuelves `owner` automáticamente).
@@ -234,12 +258,16 @@ operadorpro/
 ├── verificar.html              Verificador público de certificados (QR)
 ├── fleet.html                  Shell del panel de flota — dueño/admin (SPA)
 ├── fleet-qr.html               Verificación pública de unidad (QR)
+├── manifest.webmanifest        Manifest PWA (instalar como app)
+├── sw.js                       Service worker (red primero, caché de respaldo)
+├── icons/                      Íconos PWA (generados por scripts/generate-icons.js)
 ├── css/styles.css              Sistema visual "señal carretera"
 ├── css/fleet.css               Extensión visual del módulo de flota
 ├── js/config.js                Llaves públicas (editar)
 ├── js/courses-data.js          Contenido de cursos y exámenes
 ├── js/app.js                   Lógica del panel de certificación
 ├── js/fleet-app.js             Lógica del panel de flota
+├── js/register-sw.js           Registra el service worker (app.html y fleet.html)
 ├── netlify/functions/
 │   ├── create-checkout.js      Stripe Checkout (suscripción)
 │   ├── stripe-webhook.js       Sincroniza estado de suscripción
@@ -269,6 +297,7 @@ operadorpro/
 │                                errores, respuesta, caché, notificaciones, OCR,
 │                                Stripe (cliente + sync de cantidad)
 ├── scripts/check-rpc-contracts.js  Verifica admin.rpc(...) vs schema_fleet.sql (CI)
+├── scripts/generate-icons.js   Genera icons/*.png (encoder PNG propio, sin deps)
 ├── test/domain.test.js         Pruebas unitarias de domain/* (node:test)
 ├── .github/workflows/ci.yml    Sintaxis + contratos RPC + pruebas en cada push/PR
 ├── supabase/schema.sql         Tablas de certificación, trigger de perfil y RLS

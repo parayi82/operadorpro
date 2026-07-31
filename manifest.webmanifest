@@ -1,0 +1,17 @@
+{
+  "name": "OperadorPro Flota",
+  "short_name": "OP Flota",
+  "description": "Cumplimiento documental, viáticos, inspección pre-viaje y cobranza para tu flota.",
+  "id": "/fleet.html",
+  "start_url": "/fleet.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#17191E",
+  "theme_color": "#05603A",
+  "lang": "es-MX",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
