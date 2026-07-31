@@ -14,7 +14,17 @@
 -- ============================================================
 
 alter table public.profiles
-  add column if not exists plan text not null default 'esencial';
+  add column if not exists plan text default 'esencial';
+
+-- Normaliza cualquier valor previo fuera de rango (o NULL) antes de
+-- exigir la regla: cubre el caso de que la columna ya existiera de un
+-- intento anterior con datos sucios.
+update public.profiles
+  set plan = 'esencial'
+  where plan is null or plan not in ('esencial','protegido');
+
+alter table public.profiles
+  alter column plan set not null;
 
 alter table public.profiles
   drop constraint if exists profiles_plan_check;
