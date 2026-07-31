@@ -1,0 +1,47 @@
+/* ============================================================
+   OperadorPro Flota — Extiende css/styles.css (mismo sistema visual
+   "señal carretera"). Cargar SIEMPRE después de styles.css.
+   ============================================================ */
+
+.fleet-shell { max-width: 1100px; margin: 0 auto; padding: 24px 20px 60px; }
+
+.fleet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
+  margin: 18px 0;
+}
+
+.fleet-card {
+  background: var(--blanco);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.fleet-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 22px; }
+.fleet-tabs a {
+  padding: 8px 16px; border-radius: 999px; background: var(--niebla);
+  color: var(--asfalto); text-decoration: none; font-weight: 600; font-size: 14px;
+}
+.fleet-tabs a.active { background: var(--verde); color: var(--blanco); }
+
+.badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.badge.vigente, .badge.aprobada, .badge.pagada { background: #DCFCE7; color: var(--verde-oscuro); }
+.badge.por_vencer, .badge.pendiente { background: #FEF3C7; color: var(--ambar); }
+.badge.vencido, .badge.rechazada, .badge.vencida { background: #FEE2E2; color: var(--rojo); }
+
+/* Envuelve cada <table class="fleet-table"> en <div class="table-scroll">
+   — en pantallas angostas la tabla se desplaza horizontalmente sola en
+   vez de forzar el scroll horizontal de toda la página. */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius); box-shadow: var(--shadow); }
+table.fleet-table { width: 100%; min-width: 480px; border-collapse: collapse; background: var(--blanco); }
+table.fleet-table th, table.fleet-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--niebla); font-size: 14px; white-space: nowrap; }
+table.fleet-table th { background: var(--asfalto); color: var(--blanco); text-transform: uppercase; font-size: 12px; letter-spacing: .04em; }
+
+.checklist-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--niebla); }
+.checklist-item label { font-weight: 600; }
+
+.photo-inputs { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin: 10px 0; }
+
+.qr-public { max-width: 420px; margin: 40px auto; text-align: center; }

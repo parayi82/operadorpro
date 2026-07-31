@@ -3,8 +3,15 @@
   "version": "1.0.0",
   "description": "Capacitación y certificación para operadores de autotransporte federal",
   "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "check:syntax": "for f in netlify/functions/*.js netlify/functions/_lib/*.js netlify/functions/domain/*.js; do node --check \"$f\" || exit 1; done",
+    "check:rpc": "node scripts/check-rpc-contracts.js",
+    "verify": "npm run check:syntax && npm run check:rpc && npm test"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
-    "stripe": "^16.0.0"
+    "stripe": "^16.0.0",
+    "zod": "^3.23.8"
   }
 }

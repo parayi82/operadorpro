@@ -265,6 +265,434 @@ const COURSES = [
       { q: "El examen médico y de alcohol/drogas tras el accidente:", options: ["Debes rechazarlo siempre", "Conviene cooperar: si estás limpio, es tu mejor evidencia inmediata", "Solo aplica a los del tercero", "Se hace únicamente con orden judicial"], correct: 1 },
       { q: "¿Cuál de estas conductas cambia por completo tu panorama legal, para mal?", options: ["Llamar al 911", "Abandonar la escena del accidente", "Esperar al ajustador", "Tomar fotografías"], correct: 1 }
     ]
+  },
+
+  {
+    id: "materiales-peligrosos",
+    title: "Materiales y residuos peligrosos (NOM-002-SCT/2011)",
+    badge: "002",
+    color: "#17191E",
+    desc: "Capacitación específica para operadores que transportan sustancias, materiales o residuos peligrosos: documentación, señalización, manejo seguro y respuesta a emergencias.",
+    duracion: "≈ 55 min",
+    lessons: [
+      {
+        id: "mp-1",
+        title: "Qué son los materiales peligrosos y por qué necesitas esta capacitación",
+        html: `
+          <p>Se considera <strong>material o residuo peligroso</strong> toda sustancia (o mezcla de sustancias)
+          que por sus características corrosivas, reactivas, explosivas, tóxicas,
+          inflamables o biológico-infecciosas representa un riesgo para la salud, el
+          medio ambiente o los bienes durante su traslado. La <strong>NOM-002-SCT/2011</strong>
+          clasifica estas sustancias en <strong>9 clases</strong> de la ONU (explosivos, gases,
+          líquidos inflamables, sólidos inflamables, oxidantes, tóxicos/infecciosos,
+          radiactivos, corrosivos y varios), cada una con su propia simbología.</p>
+          <p>Puntos que todo operador de esta carga debe tener claros desde el día uno:</p>
+          <ul>
+            <li><strong>Licencia federal categoría "E":</strong> conducir unidades con materiales
+            peligrosos exige esta categoría específica, adicional a la licencia base. No
+            es opcional ni negociable con el permisionario.</li>
+            <li><strong>Capacitación y reentrenamiento periódico:</strong> esta certificación
+            acredita conocimiento general; muchas empresas y aseguradoras exigen además
+            cursos de reentrenamiento anual específicos por tipo de material que
+            transportan.</li>
+            <li><strong>No toda unidad ni todo operador califica:</strong> el vehículo necesita
+            autorización específica de la SICT para el tipo de material, y tú necesitas
+            estar dado de alta como operador autorizado para esa carga.</li>
+          </ul>
+          <p class="tip">Regla de oro: <strong>si no tienes categoría E vigente, autorización de la
+          unidad para ese material y la documentación completa, no subas esa carga</strong> —
+          ni por presión de la empresa ni por "ya se hace tarde". El riesgo penal y de
+          seguridad es tuyo, no de quien te apura por teléfono.</p>
+        `
+      },
+      {
+        id: "mp-2",
+        title: "Documentación y señalización obligatoria",
+        html: `
+          <p>Además de tus documentos habituales (licencia, tarjeta de circulación, póliza,
+          Carta Porte), el transporte de materiales peligrosos exige documentación y
+          señalización específica:</p>
+          <ul>
+            <li><strong>Complemento Carta Porte con datos de material peligroso:</strong> debe
+            incluir la <strong>clave de material peligroso</strong>, su clase y número ONU/UN.
+            Verifica que la clave del papel coincida con lo que realmente traes cargado.</li>
+            <li><strong>Hoja de datos de seguridad (HDS/SDS):</strong> documento técnico de la
+            sustancia con sus riesgos, primeros auxilios y manejo en caso de derrame.
+            Debe ir a bordo, en un lugar que tú y los primeros respondientes puedan
+            ubicar de inmediato (no enterrada en una carpeta en el fondo de la cabina).</li>
+            <li><strong>Rombos de seguridad y paneles de identificación:</strong> la unidad debe
+            portar visiblemente el <strong>rombo (diamante) de riesgo</strong> correspondiente a
+            la clase de material en los 4 costados, y el <strong>panel naranja con el número
+            ONU</strong> cuando aplique. Verifica que estén limpios, legibles y sean los
+            correctos para lo que traes — un rombo equivocado confunde a los primeros
+            respondientes en una emergencia real.</li>
+            <li><strong>Autorización SICT de la unidad y de la ruta:</strong> algunas sustancias
+            solo pueden transportarse por rutas autorizadas y en horarios específicos
+            (evitando cruces urbanos en horas pico, por ejemplo).</li>
+          </ul>
+          <p class="tip">Antes de arrancar, checklist de 30 segundos: <strong>clave correcta en la
+          Carta Porte, HDS a bordo y localizable, rombos correctos en los 4 costados,
+          panel naranja si aplica.</strong> Si falta uno solo, detén el viaje y repórtalo.</p>
+        `
+      },
+      {
+        id: "mp-3",
+        title: "Manejo seguro en ruta y equipo de protección",
+        html: `
+          <p>Transportar materiales peligrosos exige disciplina adicional en cada tramo del
+          viaje:</p>
+          <ul>
+            <li><strong>Inspección pre-viaje reforzada:</strong> revisa especialmente fugas,
+            estado de válvulas y conexiones (en pipas), amarres y estado del embalaje
+            (en carga seca), y que el equipo de emergencia esté completo: extintor de
+            mayor capacidad, kit de derrame básico, equipo de protección personal (EPP).</li>
+            <li><strong>Equipo de protección personal (EPP) a bordo:</strong> guantes,
+            googles/lentes de seguridad y, según el material, respirador o traje
+            específico indicado en la hoja de seguridad. No es "por si acaso": es para
+            que tú puedas actuar sin exponerte en los primeros minutos de un incidente
+            menor.</li>
+            <li><strong>Segregación de materiales incompatibles:</strong> nunca combines en la
+            misma unidad sustancias que la hoja de seguridad marque como incompatibles
+            entre sí (ej. oxidantes con inflamables). Si algo no cuadra con lo que sabes
+            de la carga, pregunta antes de aceptar el embarque.</li>
+            <li><strong>Restricciones de velocidad, ruta y paradas:</strong> muchas normas
+            internas y pólizas exigen velocidad reducida, evitar zonas densamente
+            pobladas para pernoctar, y no estacionarte cerca de escuelas, hospitales o
+            fuentes de agua. Planea tus paradas de descanso con esto en mente, no sobre
+            la marcha.</li>
+            <li><strong>Reabastecimiento de combustible:</strong> apaga el motor, sin
+            fumar ni usar el teléfono cerca del despacho, y extrema precaución si la
+            carga es inflamable.</li>
+          </ul>
+          <p class="tip">Con materiales peligrosos, la improvisación es el riesgo más grande.
+          Sigue el protocolo aunque el reloj apriete: una parada de más nunca cuesta lo
+          que cuesta un incidente.</p>
+        `
+      },
+      {
+        id: "mp-4",
+        title: "Respuesta a emergencias y consecuencias legales",
+        html: `
+          <p>Si ocurre un incidente (fuga, derrame, incendio, volcadura) con materiales
+          peligrosos, el protocolo cambia respecto a un accidente convencional:</p>
+          <ol>
+            <li><strong>Tu integridad primero, a distancia segura.</strong> No intentes contener
+            un derrame o fuga mayor sin el equipo y entrenamiento adecuados — retírate a
+            distancia segura y reporta desde ahí.</li>
+            <li><strong>Llama al 911 y reporta la clase y número ONU del material</strong> (lo
+            traes en tu documentación) — esto permite a los cuerpos de emergencia
+            preparar la respuesta correcta desde que salen.</li>
+            <li><strong>Usa la Guía de Respuesta en caso de Emergencia (GRE)</strong> si la traes
+            a bordo: te indica el radio de aislamiento inicial recomendado y las
+            acciones básicas según la clase de material, mientras llegan los expertos.</li>
+            <li><strong>Aísla la zona</strong> con mayor radio del habitual (considera dirección
+            del viento si hay gases o vapores) y evita que curiosos o el propio tráfico
+            se acerquen.</li>
+            <li><strong>No intentes limpiar o "resolver" un derrame ambiental por tu cuenta.</strong>
+            Eso corresponde a equipos especializados; tu intento bien intencionado puede
+            agravar la contaminación y tu responsabilidad legal.</li>
+          </ol>
+          <p><strong>Consecuencias de operar fuera de norma:</strong> las sanciones por
+          transportar materiales peligrosos sin autorización, sin señalización correcta o
+          con documentación incompleta son considerablemente más severas que en carga
+          general — incluyen aseguramiento inmediato de la unidad, multas elevadas, y en
+          caso de daño ambiental o a terceros, responsabilidad penal tanto para el
+          operador como para la empresa. La cobertura de seguro para este tipo de carga
+          también suele exigir que el operador cuente con toda la documentación y
+          capacitación vigente para que la póliza responda.</p>
+          <p class="tip">Un operador certificado y en regla para materiales peligrosos accede a
+          cargas mejor pagadas — y es exactamente el perfil que las empresas serias
+          buscan para reducir su propio riesgo.</p>
+        `
+      }
+    ],
+    quiz: [
+      { q: "¿Cuántas clases de riesgo de la ONU clasifica la normatividad de materiales peligrosos?", options: ["4", "6", "9", "12"], correct: 2 },
+      { q: "¿Qué categoría de licencia federal se requiere para conducir unidades con materiales peligrosos?", options: ["Categoría A", "Categoría B", "Categoría E", "No se requiere categoría especial"], correct: 2 },
+      { q: "Además del rombo de seguridad, ¿qué otro elemento debe portar visiblemente la unidad cuando aplique?", options: ["Un extintor pintado en la puerta", "El panel naranja con el número ONU", "El logo de la aseguradora", "Una calcomanía de verificación vehicular"], correct: 1 },
+      { q: "La hoja de datos de seguridad (HDS/SDS) debe ir a bordo:", options: ["No es necesaria si el viaje es corto", "En un lugar donde tú y los primeros respondientes la ubiquen de inmediato", "Solo en la oficina de la empresa", "Únicamente en formato digital sin respaldo físico"], correct: 1 },
+      { q: "Antes de aceptar cargar dos sustancias distintas en la misma unidad, debes verificar:", options: ["Que quepan en el espacio disponible", "Que no sean materiales incompatibles según la hoja de seguridad", "Que ambas tengan la misma clave ONU", "No es necesario verificar nada si van bien empacadas"], correct: 1 },
+      { q: "Ante una fuga o derrame mayor de material peligroso, tu primera acción es:", options: ["Contenerlo tú mismo con lo que tengas a la mano", "Retirarte a distancia segura y reportar al 911", "Seguir manejando hasta el destino", "Esperar en la cabina a que pase"], correct: 1 },
+      { q: "La Guía de Respuesta en caso de Emergencia (GRE) sirve para:", options: ["Sustituir la llamada al 911", "Indicar el radio de aislamiento inicial y acciones básicas según la clase de material", "Reemplazar la hoja de datos de seguridad", "Solo la usan los bomberos, no el operador"], correct: 1 },
+      { q: "Si ocurre un derrame con posible daño ambiental, lo correcto es:", options: ["Limpiarlo tú mismo lo antes posible", "Dejarlo para que la lluvia lo disperse", "No intentar resolverlo por tu cuenta; es tarea de equipos especializados", "Cubrirlo con tierra y continuar el viaje"], correct: 2 },
+      { q: "Las sanciones por transportar materiales peligrosos sin la documentación y señalización correctas, comparadas con carga general, son:", options: ["Iguales", "Menores, porque es un caso especial", "Considerablemente más severas", "Solo aplican a la empresa, nunca al operador"], correct: 2 },
+      { q: "¿Por qué conviene mantener vigente tu capacitación y documentación para materiales peligrosos?", options: ["Es un trámite sin beneficio real", "Da acceso a cargas mejor pagadas y reduce tu riesgo legal y de seguridad", "Solo lo exige la aseguradora, nada más", "No afecta si la empresa ya está en regla"], correct: 1 }
+    ]
+  },
+
+  {
+    id: "sujecion-carga",
+    title: "Peso, dimensiones y sujeción de carga (NOM-012-SCT-2)",
+    badge: "012",
+    color: "#044A2D",
+    desc: "Límites de peso y dimensiones del autotransporte federal, y buenas prácticas de sujeción y estiba: la carga mal sujeta o mal distribuida es causa directa de accidentes, volcaduras y multas.",
+    duracion: "≈ 45 min",
+    lessons: [
+      {
+        id: "sc-1",
+        title: "Qué regula la NOM-012-SCT-2 y por qué te afecta directamente",
+        html: `
+          <p>La <strong>NOM-012-SCT-2</strong> establece los <strong>pesos y dimensiones máximos</strong>
+          con los que pueden circular los vehículos de autotransporte federal, según su
+          configuración vehicular (ej. C2, C3, T3S2, T3S2R4). Aunque quien calcula la
+          carga suele ser logística o el cliente, <strong>tú eres quien la trae encima</strong> y
+          quien responde en una báscula o en un retén.</p>
+          <ul>
+            <li><strong>Peso Bruto Vehicular (PBV):</strong> el peso máximo permitido de la
+            unidad cargada, según su configuración. Excederlo (sobrecupo) es una de las
+            infracciones más comunes y costosas del autotransporte.</li>
+            <li><strong>Límites por eje:</strong> no basta con no exceder el peso total; cada eje
+            tiene su propio límite. Una carga mal distribuida puede sobrecargar un eje
+            aunque el peso total esté dentro de norma — y así te sancionan igual en la
+            báscula.</li>
+            <li><strong>Dimensiones máximas:</strong> alto, ancho y largo permitidos según la
+            configuración; cargas que sobresalen requieren señalización y, en algunos
+            casos, permiso especial de carga sobredimensionada.</li>
+          </ul>
+          <p class="tip">Antes de firmar de recibido una carga, pregunta el peso total y por eje
+          si no viene indicado. Firmar "de recibido conforme" sin verificar te vuelve
+          corresponsable de la sobrecarga ante la autoridad.</p>
+        `
+      },
+      {
+        id: "sc-2",
+        title: "Cómo pesar y distribuir la carga correctamente",
+        html: `
+          <p>La distribución del peso importa tanto como el peso total:</p>
+          <ul>
+            <li><strong>Usa las básculas disponibles</strong> en el origen o en las casetas de la
+            ruta cuando tengas duda razonable sobre el peso — es preferible una parada
+            de 10 minutos que una infracción que detiene la unidad horas.</li>
+            <li><strong>Centro de gravedad bajo y centrado:</strong> la carga más pesada va abajo
+            y lo más centrada posible, tanto de adelante hacia atrás como de lado a
+            lado. Un centro de gravedad alto o descentrado aumenta drásticamente el
+            riesgo de volcadura en curvas o maniobras de emergencia.</li>
+            <li><strong>Distribución longitudinal:</strong> concentrar todo el peso muy adelante o
+            muy atrás sobrecarga el eje correspondiente aunque el total sea correcto.
+            Reparte la carga a lo largo de la caja o plataforma.</li>
+            <li><strong>Carga líquida a granel (pipas):</strong> el "efecto de oleaje" del líquido
+            en movimiento afecta la estabilidad de forma distinta a la carga sólida —
+            requiere manejo aún más suave en curvas, frenados y arrancones.</li>
+          </ul>
+          <p class="tip">Si algo se siente "raro" al arrancar o en la primera curva —vaivén
+          excesivo, la unidad se siente inestable— detente y revisa distribución y
+          sujeción antes de seguir. Ese instinto rara vez se equivoca.</p>
+        `
+      },
+      {
+        id: "sc-3",
+        title: "Sujeción y estiba: reglas prácticas",
+        html: `
+          <p>Una carga bien distribuida pero mal sujeta sigue siendo un riesgo. Reglas
+          prácticas de sujeción:</p>
+          <ul>
+            <li><strong>Usa el equipo adecuado:</strong> cadenas, tensores (matracas), cinchos o
+            duelas según el tipo de carga. Revisa que no tengan cortes, deshilachados,
+            oxidación severa o hebillas dañadas antes de usarlos — un tensor dañado
+            falla justo cuando más se necesita.</li>
+            <li><strong>Capacidad de carga de trabajo (WLL):</strong> cada amarre tiene una
+            capacidad máxima marcada por el fabricante. La suma de la capacidad de tus
+            amarres debe cubrir con margen el peso que estás asegurando, no solo
+            "verse suficiente".</li>
+            <li><strong>Número mínimo de puntos de sujeción:</strong> como regla práctica general,
+            entre más pesada, alta o indivisible sea la pieza, más puntos de amarre
+            independientes necesita — nunca dependas de un solo punto para una pieza
+            crítica.</li>
+            <li><strong>Cobertura con lona:</strong> además de proteger la carga, evita que objetos
+            se desprendan y se conviertan en proyectiles para otros vehículos —
+            responsabilidad que recae directamente en el operador que dejó la unidad
+            así.</li>
+            <li><strong>Revisa la sujeción durante el viaje:</strong> las vibraciones aflojan
+            tensores y cadenas. Verifica en la primera parada corta después de arrancar
+            y periódicamente en viajes largos, no solo antes de salir.</li>
+          </ul>
+          <p class="tip">Estiba y sujeción es de lo poco que SÍ está 100% en tus manos —
+          a diferencia del tráfico o el clima. Ahí es donde más se nota un operador
+          profesional.</p>
+        `
+      },
+      {
+        id: "sc-4",
+        title: "Consecuencias de la sobrecarga y la carga mal sujeta",
+        html: `
+          <p>Las consecuencias de operar fuera de los límites de peso, dimensiones o
+          sujeción van más allá de la multa:</p>
+          <ul>
+            <li><strong>Sanciones económicas:</strong> las multas por sobrepeso se calculan según
+            el exceso detectado en báscula y pueden ser significativas; se suman a la
+            demora de la unidad mientras se resuelve o se hace trasbordo de excedente.</li>
+            <li><strong>Riesgo de volcadura:</strong> la combinación de sobrepeso, centro de
+            gravedad alto y velocidad en curva es la receta más común de volcaduras en
+            autotransporte — y una volcadura con carga que invade carriles contrarios
+            puede involucrar a terceros inocentes.</li>
+            <li><strong>Carga que cae en movimiento:</strong> si una pieza mal sujeta cae y causa
+            un accidente a otro vehículo, la responsabilidad civil (y potencialmente
+            penal) recae sobre el operador y la empresa, incluso si el operador del
+            otro vehículo no tuvo culpa alguna.</li>
+            <li><strong>Aseguramiento de la unidad:</strong> en verificaciones, una unidad con
+            sobrepeso relevante o sujeción claramente deficiente puede ser detenida
+            hasta corregir la condición, generando pérdida de tiempo, penalizaciones
+            del cliente por retraso, y en casos graves, aseguramiento formal.</li>
+          </ul>
+          <p class="tip">La revisión de peso y sujeción toma minutos; una volcadura o una pieza
+          caída en carretera cuesta días de unidad parada, procesos legales y, en el
+          peor caso, vidas. Nunca es tiempo perdido.</p>
+        `
+      }
+    ],
+    quiz: [
+      { q: "¿Qué regula principalmente la NOM-012-SCT-2?", options: ["Los tiempos de conducción y descanso", "Los pesos y dimensiones máximos según la configuración vehicular", "El protocolo de accidentes", "La categoría de licencia federal"], correct: 1 },
+      { q: "Una carga puede sobrecargar un eje específico aunque el peso total de la unidad esté dentro de norma. Esto ocurre por:", options: ["Un error de báscula", "Mala distribución de la carga a lo largo de la unidad", "El clima", "El tipo de combustible usado"], correct: 1 },
+      { q: "¿Dónde debe ir el centro de gravedad de la carga para reducir el riesgo de volcadura?", options: ["Lo más alto posible", "Bajo y centrado", "Concentrado totalmente al frente", "No importa mientras el peso total sea correcto"], correct: 1 },
+      { q: "Antes de usar cadenas o tensores para sujetar la carga, debes revisar:", options: ["Solo que combinen en color", "Que no tengan cortes, oxidación severa o hebillas dañadas", "Que sean del mismo fabricante que la unidad", "No es necesario revisarlos si se ven completos"], correct: 1 },
+      { q: "La capacidad de carga de trabajo (WLL) de los amarres debe:", options: ["Ser exactamente igual al peso de la pieza", "Cubrir con margen el peso que se está asegurando", "Ignorarse si el viaje es corto", "Aplicar solo a cargas líquidas"], correct: 1 },
+      { q: "¿Cuándo conviene revisar la sujeción de la carga durante el viaje?", options: ["Nunca, solo antes de salir", "En la primera parada corta después de arrancar y periódicamente en viajes largos", "Solo si llueve", "Únicamente al llegar al destino"], correct: 1 },
+      { q: "Si sientes vaivén excesivo o inestabilidad al tomar la primera curva después de cargar, debes:", options: ["Ignorarlo y seguir, es normal", "Detenerte y revisar distribución y sujeción antes de continuar", "Acelerar para estabilizar la unidad", "Solo reportarlo al llegar al destino"], correct: 1 },
+      { q: "Si una pieza mal sujeta cae en movimiento y causa un accidente a otro vehículo, la responsabilidad recae principalmente en:", options: ["Únicamente en el otro conductor", "El operador y la empresa transportista", "Nadie, se considera caso fortuito", "Solo en quien fabricó la pieza"], correct: 1 },
+      { q: "Con carga líquida a granel (pipas), el manejo debe ser:", options: ["Igual que con carga sólida", "Más suave en curvas, frenados y arrancones por el efecto de oleaje del líquido", "Más rápido para evitar el oleaje", "Solo importa la velocidad, no el frenado"], correct: 1 },
+      { q: "Firmar de recibido una carga sin verificar su peso:", options: ["No tiene ninguna consecuencia para el operador", "Puede volverte corresponsable de una sobrecarga ante la autoridad", "Es obligatorio hacerlo sin revisar", "Solo aplica si el cliente lo exige por escrito"], correct: 1 }
+    ]
+  },
+
+  {
+    id: "manejo-defensivo",
+    title: "Manejo defensivo y prevención de accidentes",
+    badge: "MD",
+    color: "#23262C",
+    desc: "Técnicas de manejo defensivo específicas para vehículos pesados: distancia de seguridad, puntos ciegos, condiciones adversas y anticipación ante el error de terceros.",
+    duracion: "≈ 50 min",
+    lessons: [
+      {
+        id: "md-1",
+        title: "Qué es el manejo defensivo y la regla de los segundos",
+        html: `
+          <p><strong>Manejar a la defensiva</strong> significa anticipar el error ajeno, no solo
+          evitar el propio. La mayoría de los accidentes en carretera involucran al
+          menos una decisión de otro conductor que un operador defensivo pudo haber
+          anticipado con distancia y atención suficientes.</p>
+          <ul>
+            <li><strong>Distancia de seguimiento:</strong> un vehículo pesado necesita mucha más
+            distancia de frenado que un automóvil. Como regla práctica, mantén al menos
+            <strong>6 segundos</strong> de distancia respecto al vehículo de adelante en condiciones
+            normales (cuenta "mil uno, mil dos…" desde que el vehículo de enfrente pasa
+            un punto fijo hasta que tú pasas el mismo punto), y auméntala en lluvia,
+            carga pesada o pendiente descendente.</li>
+            <li><strong>Explora constantemente:</strong> revisa espejos cada 5–8 segundos, no solo
+            cuando vas a maniobrar. Anticipar lo que pasa detrás y a los lados te da
+            opciones antes de que las necesites.</li>
+            <li><strong>Ten siempre una "salida":</strong> al circular, identifica mentalmente hacia
+            dónde podrías moverte si el vehículo de adelante frena en seco o algo
+            invade tu carril. Un operador defensivo nunca se queda "atrapado" sin opciones.</li>
+          </ul>
+          <p class="tip">La pregunta que debes hacerte cada pocos minutos: <strong>"si el vehículo
+          de adelante se detiene en este instante, ¿tengo espacio para reaccionar?"</strong>
+          Si la respuesta es no, ya vas muy cerca.</p>
+        `
+      },
+      {
+        id: "md-2",
+        title: "Puntos ciegos y maniobras seguras",
+        html: `
+          <p>Un tracto con remolque tiene zonas ciegas mucho más grandes que un automóvil,
+          y esto exige maniobras específicas:</p>
+          <ul>
+            <li><strong>Las 4 zonas ciegas (\"no-zones\"):</strong> justo detrás del remolque, a lo
+            largo de ambos costados (especialmente el lado del pasajero, el más
+            extenso), y justo enfrente de la cabina en distancias cortas. Si tú no ves el
+            espejo de un vehículo, ese conductor probablemente no te ve a ti.</li>
+            <li><strong>Cambios de carril:</strong> señaliza con anticipación, verifica el punto
+            ciego girando ligeramente la cabeza (no solo el espejo) y ejecuta el cambio
+            de forma gradual, nunca brusca — recuerda que el remolque "corta camino" en
+            curvas y cambios de carril (efecto de fuera de trayectoria).</li>
+            <li><strong>Vueltas amplias:</strong> en vueltas cerradas, especialmente a la derecha,
+            el remolque describe un radio distinto al de la cabina. Verifica que ningún
+            vehículo, ciclista o peatón intente "colarse" por ese espacio antes de girar.</li>
+            <li><strong>Reversa:</strong> siempre que sea posible, pide apoyo de un señalero en
+            tierra. Si no hay nadie, baja, camina y verifica el área antes de maniobrar
+            — los segundos que toma valen mucho menos que un incidente.</li>
+          </ul>
+          <p class="tip">Regla simple para autos particulares cerca de ti: <strong>si no puedes ver
+          su espejo retrovisor, ellos no pueden verte a ti.</strong> Compártela mentalmente
+          con cada maniobra que hagas.</p>
+        `
+      },
+      {
+        id: "md-3",
+        title: "Condiciones adversas: lluvia, niebla, noche y terracería",
+        html: `
+          <p>Cada condición adversa exige un ajuste específico, no solo "manejar más
+          despacio":</p>
+          <ul>
+            <li><strong>Lluvia:</strong> reduce velocidad gradualmente, aumenta la distancia de
+            seguimiento (el doble de lo habitual en lluvia fuerte), evita frenados
+            bruscos que puedan provocar coleo (jackknife) del remolque, y ten especial
+            cuidado en los primeros minutos de lluvia, cuando el aceite acumulado en el
+            pavimento lo vuelve más resbaladizo que después de un rato lloviendo.</li>
+            <li><strong>Niebla:</strong> usa luces bajas (las altas rebotan en la niebla y reducen
+            tu visibilidad), reduce velocidad de forma importante, y si la visibilidad
+            baja demasiado, es preferible orillarte en un lugar seguro y esperar a que
+            mejore que seguir "a ciegas".</li>
+            <li><strong>Manejo nocturno:</strong> tu campo de visión efectivo se reduce
+            drásticamente; ajusta la velocidad a la distancia que realmente iluminan tus
+            faros, extrema precaución con peatones, animales y vehículos sin luces
+            traseras funcionales, y gestiona tu fatiga (ver el curso de NOM-087):
+            manejar de noche con sueño acumulado es de las combinaciones más peligrosas
+            que existen.</li>
+            <li><strong>Terracería o camino en mal estado:</strong> reduce velocidad
+            considerablemente, evita frenados y giros bruscos que en superficie
+            irregular pueden desestabilizar la unidad, y verifica la sujeción de la
+            carga con más frecuencia — las vibraciones aflojan amarres más rápido.</li>
+          </ul>
+          <p class="tip">Ninguna entrega justifica llegar tarde con la unidad volcada. Ajustar
+          velocidad a las condiciones reales del camino, no al horario que traes
+          encima, es la decisión más rentable a largo plazo.</p>
+        `
+      },
+      {
+        id: "md-4",
+        title: "Anticipación, terceros imprudentes y mantenimiento como seguridad",
+        html: `
+          <p>El manejo defensivo también significa saber reaccionar (o no reaccionar) ante
+          el error de otros:</p>
+          <ul>
+            <li><strong>Ante un vehículo que se te cierra o invade tu carril:</strong> prioriza
+            evitar el impacto de forma controlada (frenar progresivamente, buscar tu
+            "salida" ya identificada) por encima de defender "quién tenía el paso". Un
+            operador de vehículo pesado que reacciona con maniobras bruscas puede
+            provocar un accidente peor que el que intentaba evitar.</li>
+            <li><strong>No entres en confrontación en carretera:</strong> pitar de forma agresiva,
+            acelerar para "darle una lección" a otro conductor, o seguirlo de cerca
+            para reclamarle, convierte un susto en un riesgo real para ti y para
+            terceros. Si alguien maneja de forma temeraria cerca de ti, aumenta
+            distancia y, si es grave, repórtalo (placas, ubicación) a la autoridad.</li>
+            <li><strong>El mantenimiento preventivo es parte del manejo defensivo:</strong> frenos,
+            llantas y luces en buen estado no son solo un tema de norma (NOM-068) —
+            son literalmente tu capacidad de reaccionar cuando la necesitas. La
+            inspección pre-viaje de 5 minutos es, en los hechos, tu primera maniobra
+            defensiva del día.</li>
+            <li><strong>Gestiona tu propio estado:</strong> el manejo defensivo empieza contigo:
+            fatiga, distracción por el teléfono, o manejar bajo estrés emocional fuerte
+            reducen tu capacidad de anticipación tanto como la de cualquier otro
+            conductor imprudente que puedas cruzarte.</li>
+          </ul>
+          <p class="tip">Un operador defensivo no es el que nunca se topa con un imprudente en
+          la carretera — es el que llega a su destino sin importar cuántos se
+          cruzó en el camino.</p>
+        `
+      }
+    ],
+    quiz: [
+      { q: "¿Qué significa principalmente 'manejar a la defensiva'?", options: ["Manejar siempre muy despacio", "Anticipar el error de otros conductores, no solo evitar el propio", "Nunca ceder el paso a nadie", "Manejar pegado a la línea central"], correct: 1 },
+      { q: "Como regla práctica, ¿cuántos segundos de distancia de seguimiento se recomiendan en condiciones normales para un vehículo pesado?", options: ["1 segundo", "3 segundos", "6 segundos", "No es necesario contar, basta con 'ver bien'"], correct: 2 },
+      { q: "Las zonas ciegas ('no-zones') más extensas de un tracto con remolque están:", options: ["Solo enfrente de la cabina", "Detrás del remolque y a lo largo de ambos costados, especialmente el del pasajero", "Únicamente arriba de la cabina", "No existen en vehículos modernos"], correct: 1 },
+      { q: "Antes de un cambio de carril, además de usar el espejo, debes:", options: ["Solo activar la direccional", "Girar ligeramente la cabeza para verificar el punto ciego", "Acelerar para cambiar más rápido", "No es necesario nada adicional"], correct: 1 },
+      { q: "En los primeros minutos de lluvia, el pavimento suele ser:", options: ["Menos resbaladizo que de costumbre", "Más resbaladizo, por el aceite acumulado que aún no se ha lavado", "Igual que en seco", "Solo importa si llueve fuerte"], correct: 1 },
+      { q: "En niebla densa, lo correcto respecto a las luces es:", options: ["Usar luces altas para ver más lejos", "Usar luces bajas, porque las altas rebotan en la niebla y reducen visibilidad", "Apagar las luces por completo", "Usar las intermitentes todo el tiempo"], correct: 1 },
+      { q: "Si la visibilidad en niebla baja demasiado, la mejor decisión es:", options: ["Seguir despacio 'a ciegas'", "Orillarte en un lugar seguro y esperar a que mejore", "Acelerar para salir rápido de la zona", "Prender las luces altas y continuar"], correct: 1 },
+      { q: "Un vehículo se te cierra de forma imprudente en carretera. La reacción defensiva correcta es:", options: ["Acelerar para 'darle una lección'", "Frenar progresivamente y usar la salida que ya tenías identificada", "Seguirlo de cerca para reclamarle", "Pitar de forma prolongada y agresiva"], correct: 1 },
+      { q: "La inspección pre-viaje de frenos, llantas y luces se considera parte del manejo defensivo porque:", options: ["Es solo un trámite sin relación con la seguridad", "Determina literalmente tu capacidad real de reaccionar cuando lo necesites", "Solo importa para pasar la verificación vehicular", "No tiene relación con accidentes"], correct: 1 },
+      { q: "¿Cuál de estos factores reduce tu propia capacidad de anticipación, igual que un conductor imprudente externo?", options: ["Revisar los espejos cada pocos segundos", "La fatiga y la distracción por el teléfono", "Mantener distancia de seguimiento amplia", "Ajustar la velocidad a las condiciones del camino"], correct: 1 }
+    ]
   }
 ];
 

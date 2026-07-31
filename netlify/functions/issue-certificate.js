@@ -11,7 +11,10 @@ const { createClient } = require("@supabase/supabase-js");
 const COURSE_TITLES = {
   "carta-porte": "Carta Porte sin errores",
   "nom-087": "NOM-087: tiempos de conducción y descanso",
-  "protocolo-accidente": "Protocolo de accidente en carretera"
+  "protocolo-accidente": "Protocolo de accidente en carretera",
+  "materiales-peligrosos": "Materiales y residuos peligrosos (NOM-002-SCT/2011)",
+  "sujecion-carga": "Peso, dimensiones y sujeción de carga (NOM-012-SCT-2)",
+  "manejo-defensivo": "Manejo defensivo y prevención de accidentes"
 };
 
 function generateFolio() {
