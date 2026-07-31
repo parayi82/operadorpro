@@ -16,6 +16,15 @@
 alter table public.profiles
   add column if not exists plan text default 'esencial';
 
+-- Si la columna YA existía (de un intento anterior de correr este mismo
+-- script), el ADD COLUMN de arriba no hace nada — ni siquiera fija el
+-- default. Sin esto, cualquier alta nueva (el trigger handle_new_user,
+-- que no manda `plan` explícitamente) cae al default real de la columna
+-- y truena el check constraint de abajo. Forzarlo aquí, sin condición,
+-- es lo que lo vuelve a prueba de reintentos.
+alter table public.profiles
+  alter column plan set default 'esencial';
+
 -- Normaliza cualquier valor previo fuera de rango (o NULL) antes de
 -- exigir la regla: cubre el caso de que la columna ya existiera de un
 -- intento anterior con datos sucios.
