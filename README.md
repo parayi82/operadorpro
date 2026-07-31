@@ -43,8 +43,10 @@ Upstash Redis (rate limiting/caché, opcional) · jsPDF + QR.
 
 ### 2. Stripe (≈10 min)
 1. En **Products > Add product**: "Suscripción OperadorPro",
-   precio recurrente mensual de **$149 MXN**. Copia el `price_...`
-   → variable STRIPE_PRICE_ID.
+   precio recurrente mensual de **$249 MXN** (plan Esencial). Copia el
+   `price_...` → variable STRIPE_PRICE_ID. Si también ofreces el plan
+   Protegido ($349 MXN/mes, incluye asesoría legal), crea un segundo
+   precio para ese producto.
 2. En **Developers > API keys** copia la Secret key → STRIPE_SECRET_KEY.
 3. El webhook se configura DESPUÉS del primer deploy (paso 4).
 

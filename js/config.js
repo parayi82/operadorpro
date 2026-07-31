@@ -11,7 +11,7 @@ const CONFIG = {
   WHATSAPP_ASESORIA: "5213339263817",
 
   PLANES: {
-    esencial:  { nombre: "Esencial",  precio: "$149 MXN/mes" },
+    esencial:  { nombre: "Esencial",  precio: "$249 MXN/mes" },
     protegido: { nombre: "Protegido", precio: "$349 MXN/mes" }
   }
 };
