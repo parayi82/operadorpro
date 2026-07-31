@@ -186,38 +186,24 @@ usa **Twilio Sandbox** en su lugar (`WHATSAPP_PROVIDER=twilio` +
 permite texto libre a números que se unieron previamente, sin revisión de
 plantillas — bueno para validar el flujo, no para producción real.
 
-### 5. Cobro por suscripción de flota (Stripe)
+### 5. Flota está incluida en la suscripción de certificación
 
-Cobro **por unidad activa al mes**, replicando el flujo de Stripe Checkout
-que ya usa el panel de certificación, pero como producto/precio separado.
+No hay cobro aparte por unidad ni por empresa: cualquier usuario con un
+plan de certificación activo (Esencial o Protegido) puede usar el módulo
+de Flota sin costo adicional, sin importar cuántas unidades dé de alta.
+No hace falta crear un producto de Stripe adicional ni un webhook
+separado para esto — reutiliza el mismo `STRIPE_SECRET_KEY`,
+`STRIPE_PRICE_ESENCIAL` y `STRIPE_PRICE_PROTEGIDO` del paso 2.
 
-1. Si aún no ejecutaste `schema_fleet.sql` con las columnas de facturación
-   (`stripe_customer_id`, `stripe_subscription_id`, `subscription_status` en
-   `companies`), corre `supabase/migration_billing.sql` — es la migración
-   incremental, segura de ejecutar aunque ya tengas datos.
-2. En Stripe **Products > Add product**: "Suscripción OperadorPro Flota",
-   precio recurrente mensual. Recomendado: configúralo con **Tiered
-   pricing** (graduated o volume) para que el descuento por tamaño de flota
-   ($250-350 → $150-180 MXN/unidad según el volumen) lo aplique Stripe solo
-   según la `quantity` que le mandamos — el código nunca calcula tiers.
-   Copia el `price_...` → `STRIPE_FLEET_PRICE_ID`.
-3. En Stripe **Developers > Webhooks > Add endpoint** (uno **nuevo**,
-   distinto al de certificación):
-   - URL: `https://TU-SITIO.netlify.app/.netlify/functions/fleet-stripe-webhook`
-   - Eventos: `checkout.session.completed`, `customer.subscription.updated`,
-     `customer.subscription.deleted`, `invoice.payment_failed`
-   - Copia el `whsec_...` → `STRIPE_FLEET_WEBHOOK_SECRET` en Netlify.
-4. Variables en Netlify: `STRIPE_FLEET_PRICE_ID`, `STRIPE_FLEET_WEBHOOK_SECRET`
-   (reutiliza el `STRIPE_SECRET_KEY` que ya tienes de certificación — misma
-   cuenta de Stripe).
-5. En el panel (`fleet.html` → pestaña Flota), el **owner** de la empresa ve
-   una tarjeta de "Suscripción" con botón **Activar suscripción** (abre
-   Stripe Checkout) o **Gestionar mi suscripción** (abre el Billing Portal)
-   una vez activa.
-6. La cantidad de la suscripción se ajusta sola cuando das de alta una
-   unidad nueva (`_lib/stripeSync.js`, best-effort: si Stripe falla, el alta
-   de la unidad NO se bloquea — solo se loggea para revisar y sincronizar
-   manualmente si hace falta).
+El servidor lo hace cumplir en cada función de escritura del módulo de
+flota vía `requireActiveSubscription()` (`_lib/auth.js`) — no es solo una
+validación de pantalla: si alguien intenta llamar directo a una función
+`fleet-*` sin un plan activo, el servidor la rechaza con 403.
+
+Las columnas `companies.stripe_customer_id`, `stripe_subscription_id` y
+`subscription_status` (de un modelo de cobro por unidad que se descartó
+antes de lanzar) quedan sin uso en el esquema — no afectan nada, no hace
+falta borrarlas.
 
 ### 6. Instalar como app en el celular (PWA)
 

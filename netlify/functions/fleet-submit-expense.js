@@ -12,7 +12,7 @@
 // ============================================================
 
 const { withHandler } = require("./_lib/handler");
-const { requireCompanyRole } = require("./_lib/auth");
+const { requireCompanyRole, requireActiveSubscription } = require("./_lib/auth");
 const { validate, parseJsonBody, schemas } = require("./_lib/validate");
 const { created } = require("./_lib/response");
 const { NotFoundError, ForbiddenError } = require("./_lib/errors");
@@ -24,6 +24,7 @@ exports.handler = withHandler(
   { name: "fleet-submit-expense", methods: ["POST"], rateLimit: { limit: 20, windowMs: 60_000 } },
   async ({ event, admin, user }) => {
     const input = validate(schemas.createExpense, parseJsonBody(event));
+    await requireActiveSubscription(admin, user.id);
 
     const { data: trip } = await admin
       .from("trips")

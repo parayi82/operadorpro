@@ -832,20 +832,13 @@ async function renderFlota() {
       <p>${esc(d.phone)} · ${esc(d.status)}</p>
     </div>`).join("") || "<p>Aún no registras choferes.</p>";
 
-  const myRole = state.companies.find((c) => c.id === state.companyId)?.role;
-  const subStatus = state.company?.subscription_status || "inactive";
-  const subBadgeClass = subStatus === "active" ? "pagada" : subStatus === "past_due" ? "pendiente" : "vencida";
-  const subLabel = { active: "activa", past_due: "pago pendiente", canceled: "cancelada", inactive: "sin activar" }[subStatus] || subStatus;
+  const planLabel = { esencial: "Esencial", protegido: "Protegido" }[state.profile?.plan] || "Esencial";
   const billingCard = `
     <div class="fleet-card" style="margin-bottom:18px">
-      <h3>Suscripción — ${esc(state.company?.name || "")}</h3>
-      <p>Estatus: <span class="badge ${subBadgeClass}">${subLabel}</span> · ${state.vehicles.length} unidad(es) activa(s)</p>
-      ${myRole === "owner" ? `
-        <div class="form-msg" id="sub-msg"></div>
-        ${subStatus === "active"
-          ? `<button id="sub-manage" class="btn-primary">Gestionar mi suscripción</button>`
-          : `<button id="sub-activate" class="btn-primary">Activar suscripción</button>`}
-      ` : `<p style="color:var(--gris-texto)">Solo el dueño de la empresa puede gestionar la facturación.</p>`}
+      <h3>Flota — ${esc(state.company?.name || "")}</h3>
+      ${isSubscribed()
+        ? `<p>Incluida en tu plan <strong>${esc(planLabel)}</strong> — sin costo adicional por unidad. <span class="badge pagada">Activa ✓</span> · ${state.vehicles.length} unidad(es) activa(s)</p>`
+        : `<p class="form-msg error">Necesitas un plan de certificación activo (Esencial o Protegido) para usar el módulo de flota. <a href="#/dashboard">Elegir un plan →</a></p>`}
     </div>`;
 
   $app.innerHTML = `
@@ -901,21 +894,6 @@ async function renderFlota() {
         <tbody>${docsRows}</tbody>
       </table></div>
     </div>`;
-
-  if (myRole === "owner") {
-    const subBtn = document.getElementById(subStatus === "active" ? "sub-manage" : "sub-activate");
-    subBtn.onclick = async () => {
-      const msg = document.getElementById("sub-msg");
-      try {
-        msg.textContent = "Abriendo Stripe…";
-        const { url } = await callFn(subStatus === "active" ? "fleet-billing-portal" : "fleet-create-checkout", {
-          method: "POST",
-          body: { company_id: state.companyId }
-        });
-        location.href = url;
-      } catch (e) { msg.textContent = e.message; msg.className = "form-msg error"; }
-    };
-  }
 
   $app.querySelectorAll("[data-vehicle-status]").forEach((select) => {
     select.onchange = async () => {

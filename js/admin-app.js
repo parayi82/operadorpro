@@ -55,11 +55,11 @@ function renderLogin(errorMsg) {
   };
 }
 
-function subActionButtons(company) {
-  if (company.subscription_status === "active") {
-    return `<button data-sub-off="${company.id}" class="btn-secondary">Desactivar</button>`;
+function subActionButtons(u) {
+  if (u.certification_subscription_status === "active") {
+    return `<button data-sub-off="${u.id}" class="btn-secondary">Desactivar plan</button>`;
   }
-  return `<button data-sub-on="${company.id}" class="btn-secondary">Activar</button>`;
+  return `<button data-sub-on="${u.id}" class="btn-secondary">Activar plan</button>`;
 }
 
 async function renderDashboard() {
@@ -89,16 +89,14 @@ async function renderDashboard() {
       <td>${c.entity_type ? (c.entity_type === "fisica" ? "Física" : "Moral") : "—"}</td>
       <td>${esc(c.rfc || "—")}</td>
       <td>${c.active_vehicles}</td>
-      <td><span class="badge ${c.subscription_status === "active" ? "pagada" : c.subscription_status === "past_due" ? "pendiente" : "vencida"}">${esc(c.subscription_status)}</span></td>
       <td>${fmtDate(c.created_at)}</td>
-      <td>${subActionButtons(c)}</td>
-    </tr>`).join("") || `<tr><td colspan="8">Sin empresas registradas.</td></tr>`;
+    </tr>`).join("") || `<tr><td colspan="6">Sin empresas registradas.</td></tr>`;
 
   const userRows = users.map((u) => `
     <tr>
       <td>${esc(u.email)}</td>
       <td>${esc(u.full_name || "—")}</td>
-      <td>${esc(u.certification_subscription_status || "—")}</td>
+      <td><span class="badge ${u.certification_subscription_status === "active" ? "pagada" : u.certification_subscription_status === "past_due" ? "pendiente" : "vencida"}">${esc(u.certification_subscription_status || "inactive")}</span> · ${subActionButtons(u)}</td>
       <td>${(u.companies || []).map((m) => `${esc(m.company_name)} (${esc(m.role)}${m.status === "suspended" ? " · suspendido" : ""})`).join(", ") || "—"}</td>
       <td>${fmtDate(u.created_at)}</td>
       <td>${(u.companies || []).map((m) => `
@@ -121,15 +119,20 @@ async function renderDashboard() {
         </select>
         <label style="display:flex;align-items:center;gap:8px;margin-top:10px">
           <input id="na-activar" type="checkbox" style="width:auto">
-          Activar su suscripción de flota manualmente (trato negociado, sin Stripe)
+          Activar su plan manualmente (trato negociado, sin Stripe) — incluye cursos y Flota
         </label>
+        <label>Plan a activar</label>
+        <select id="na-plan">
+          <option value="esencial">Esencial</option>
+          <option value="protegido">Protegido</option>
+        </select>
         <div class="form-msg" id="na-msg"></div>
         <button id="na-submit" class="btn-primary" style="margin-top:10px">Crear cuenta</button>
       </div>
 
       <h2 style="margin-top:30px">Empresas (${companies.length})</h2>
       <div class="table-scroll"><table class="fleet-table">
-        <thead><tr><th>Nombre</th><th>Dueño</th><th>Tipo</th><th>RFC</th><th>Unidades</th><th>Suscripción</th><th>Alta</th><th></th></tr></thead>
+        <thead><tr><th>Nombre</th><th>Dueño</th><th>Tipo</th><th>RFC</th><th>Unidades</th><th>Alta</th></tr></thead>
         <tbody>${companyRows}</tbody>
       </table></div>
 
@@ -150,7 +153,8 @@ async function renderDashboard() {
           email: document.getElementById("na-email").value.trim(),
           full_name: document.getElementById("na-name").value.trim(),
           entity_type: document.getElementById("na-tipo").value || undefined,
-          activate_subscription: document.getElementById("na-activar").checked
+          activate_subscription: document.getElementById("na-activar").checked,
+          plan: document.getElementById("na-plan").value
         }
       });
       msg.className = "form-msg ok";
@@ -166,13 +170,13 @@ async function renderDashboard() {
 
   $app.querySelectorAll("[data-sub-on]").forEach((btn) => {
     btn.onclick = async () => {
-      await callFn("fleet-admin-set-subscription", { method: "POST", body: { company_id: btn.dataset.subOn, subscription_status: "active" } });
+      await callFn("fleet-admin-set-subscription", { method: "POST", body: { user_id: btn.dataset.subOn, subscription_status: "active", plan: "esencial" } });
       renderDashboard();
     };
   });
   $app.querySelectorAll("[data-sub-off]").forEach((btn) => {
     btn.onclick = async () => {
-      await callFn("fleet-admin-set-subscription", { method: "POST", body: { company_id: btn.dataset.subOff, subscription_status: "inactive" } });
+      await callFn("fleet-admin-set-subscription", { method: "POST", body: { user_id: btn.dataset.subOff, subscription_status: "inactive" } });
       renderDashboard();
     };
   });

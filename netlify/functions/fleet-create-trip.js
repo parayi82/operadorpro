@@ -4,7 +4,7 @@
 // ============================================================
 
 const { withHandler } = require("./_lib/handler");
-const { requireCompanyRole } = require("./_lib/auth");
+const { requireCompanyRole, requireActiveSubscription } = require("./_lib/auth");
 const { assertBelongsToCompany } = require("./_lib/tenant");
 const { validate, parseJsonBody, z } = require("./_lib/validate");
 const { created } = require("./_lib/response");
@@ -22,6 +22,7 @@ exports.handler = withHandler(
   { name: "fleet-create-trip", methods: ["POST"] },
   async ({ event, admin, user }) => {
     const input = validate(schema, parseJsonBody(event));
+    await requireActiveSubscription(admin, user.id);
     await requireCompanyRole(admin, user.id, input.company_id, ["owner", "admin"]);
     await assertBelongsToCompany(admin, "vehicles", input.vehicle_id, input.company_id, "La unidad");
     await assertBelongsToCompany(admin, "drivers", input.driver_id, input.company_id, "El chofer");

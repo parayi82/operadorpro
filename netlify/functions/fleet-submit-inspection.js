@@ -12,7 +12,7 @@
 
 const { withHandler } = require("./_lib/handler");
 const { validate, parseJsonBody, schemas } = require("./_lib/validate");
-const { requireCompanyRole } = require("./_lib/auth");
+const { requireCompanyRole, requireActiveSubscription } = require("./_lib/auth");
 const { assertBelongsToCompany } = require("./_lib/tenant");
 const { created } = require("./_lib/response");
 const { evaluate, missingRequirements } = require("./domain/inspections");
@@ -23,6 +23,7 @@ exports.handler = withHandler(
   { name: "fleet-submit-inspection", methods: ["POST"], rateLimit: { limit: 15, windowMs: 60_000 } },
   async ({ event, admin, user }) => {
     const input = validate(schemas.createInspection, parseJsonBody(event));
+    await requireActiveSubscription(admin, user.id);
     await requireCompanyRole(admin, user.id, input.company_id, null); // cualquier miembro (chofer incluido)
     await assertBelongsToCompany(admin, "vehicles", input.vehicle_id, input.company_id, "La unidad");
     await assertBelongsToCompany(admin, "drivers", input.driver_id, input.company_id, "El chofer");

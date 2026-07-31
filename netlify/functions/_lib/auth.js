@@ -35,6 +35,23 @@ async function requireCompanyRole(admin, userId, companyId, roles) {
   return data.role;
 }
 
+// Flota está incluida en la suscripción de certificación (Esencial o
+// Protegido) del usuario que actúa — no hay cobro aparte por unidad.
+// Se verifica sobre profiles.subscription_status (no sobre la empresa):
+// dos miembros de la misma empresa pueden tener planes distintos.
+async function requireActiveSubscription(admin, userId) {
+  const { data, error } = await admin
+    .from("profiles")
+    .select("subscription_status")
+    .eq("id", userId)
+    .single();
+
+  if (error) throw error;
+  if (data?.subscription_status !== "active") {
+    throw new ForbiddenError("Necesitas un plan de certificación activo (Esencial o Protegido) para usar el módulo de flota");
+  }
+}
+
 // Verifica que el usuario sea administrador de PLATAFORMA (acceso
 // transversal a todas las empresas). platform_admins no tiene ninguna
 // política RLS a propósito — esta consulta solo puede resolverla el
@@ -52,4 +69,4 @@ async function requirePlatformAdmin(admin, userId) {
   if (!data) throw new ForbiddenError("Acceso exclusivo para administradores de la plataforma");
 }
 
-module.exports = { requireUser, requireCompanyRole, requirePlatformAdmin };
+module.exports = { requireUser, requireCompanyRole, requireActiveSubscription, requirePlatformAdmin };

@@ -12,9 +12,10 @@ create table if not exists public.companies (
   owner_user_id uuid not null references auth.users(id) on delete restrict,
   plan text not null default 'hombre_camion'
     check (plan in ('hombre_camion','flota_pequena','flota_mediana')),
-  -- Facturación (cobro por unidad activa/mes vía Stripe subscription;
-  -- ver netlify/functions/fleet-create-checkout.js). NULL hasta que el
-  -- owner activa la suscripción.
+  -- Columnas legacy de un modelo de cobro por unidad que se descartó
+  -- antes de lanzar (Flota ahora está incluida en la suscripción de
+  -- certificación, ver requireActiveSubscription en _lib/auth.js).
+  -- Sin uso, se dejan por si se retoma un tier de flota grande a futuro.
   stripe_customer_id text,
   stripe_subscription_id text,
   subscription_status text not null default 'inactive'

@@ -6,7 +6,7 @@
 // ============================================================
 
 const { withHandler } = require("./_lib/handler");
-const { requireCompanyRole } = require("./_lib/auth");
+const { requireCompanyRole, requireActiveSubscription } = require("./_lib/auth");
 const { validate, z } = require("./_lib/validate");
 const { ok } = require("./_lib/response");
 const { getCached, setCached } = require("./_lib/cache");
@@ -17,6 +17,7 @@ exports.handler = withHandler(
   { name: "fleet-compliance-dashboard", methods: ["GET"], rateLimit: { limit: 60, windowMs: 60_000 } },
   async ({ event, admin, user }) => {
     const { company_id } = validate(querySchema, event.queryStringParameters || {});
+    await requireActiveSubscription(admin, user.id);
     await requireCompanyRole(admin, user.id, company_id, null);
 
     const cacheKey = `fleet:${company_id}:dashboard`;

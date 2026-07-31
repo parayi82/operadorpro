@@ -125,12 +125,14 @@ const schemas = {
     email: z.string().trim().email(),
     full_name: z.string().trim().min(2).max(120),
     entity_type: z.enum(["fisica", "moral"]).optional(),
-    activate_subscription: z.boolean().optional()
+    activate_subscription: z.boolean().optional(),
+    plan: z.enum(["esencial", "protegido"]).optional()
   }),
 
   adminSetSubscription: z.object({
-    company_id: z.string().uuid(),
-    subscription_status: z.enum(["inactive", "active", "past_due", "canceled"])
+    user_id: z.string().uuid(),
+    subscription_status: z.enum(["inactive", "active", "past_due", "canceled"]),
+    plan: z.enum(["esencial", "protegido"]).optional()
   }),
 
   adminSetMemberStatus: z.object({

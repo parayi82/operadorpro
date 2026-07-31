@@ -5,6 +5,7 @@
 // ============================================================
 
 const { withHandler } = require("./_lib/handler");
+const { requireActiveSubscription } = require("./_lib/auth");
 const { validate, parseJsonBody, schemas, z } = require("./_lib/validate");
 const { ok } = require("./_lib/response");
 
@@ -14,6 +15,7 @@ exports.handler = withHandler(
   { name: "fleet-register-payment", methods: ["POST"] },
   async ({ event, admin, user }) => {
     const { invoice_id } = validate(schema, parseJsonBody(event));
+    await requireActiveSubscription(admin, user.id);
     const { data, error } = await admin.rpc("fn_register_payment", {
       p_actor_user_id: user.id,
       p_invoice_id: invoice_id

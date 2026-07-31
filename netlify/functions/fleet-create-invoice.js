@@ -6,7 +6,7 @@
 // ============================================================
 
 const { withHandler } = require("./_lib/handler");
-const { requireCompanyRole } = require("./_lib/auth");
+const { requireCompanyRole, requireActiveSubscription } = require("./_lib/auth");
 const { validate, parseJsonBody, schemas } = require("./_lib/validate");
 const { created } = require("./_lib/response");
 
@@ -14,6 +14,7 @@ exports.handler = withHandler(
   { name: "fleet-create-invoice", methods: ["POST"] },
   async ({ event, admin, user }) => {
     const input = validate(schemas.createInvoice, parseJsonBody(event));
+    await requireActiveSubscription(admin, user.id);
     await requireCompanyRole(admin, user.id, input.company_id, ["owner", "admin"]);
 
     const { data, error } = await admin.rpc("fn_create_invoice_with_reminders", {

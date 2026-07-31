@@ -41,19 +41,20 @@ exports.handler = withHandler(
     const newUserId = created_.user.id;
 
     // Los triggers de la BD ya crearon profiles + companies (dueño = newUserId).
-    // Si el admin pidió tipo de contribuyente o activar suscripción manual,
-    // se aplica aquí sobre esa empresa recién creada.
-    if (input.entity_type || input.activate_subscription) {
+    // Tipo de contribuyente va a la empresa recién creada; activar el plan
+    // (certificación + Flota incluida, una sola suscripción) va al perfil.
+    if (input.entity_type) {
       const { data: company } = await admin
         .from("companies").select("id").eq("owner_user_id", newUserId).maybeSingle();
       if (company) {
-        const patch = {};
-        if (input.entity_type) patch.entity_type = input.entity_type;
-        if (input.activate_subscription) patch.subscription_status = "active";
-        if (Object.keys(patch).length) {
-          await admin.from("companies").update(patch).eq("id", company.id);
-        }
+        await admin.from("companies").update({ entity_type: input.entity_type }).eq("id", company.id);
       }
+    }
+    if (input.activate_subscription) {
+      await admin
+        .from("profiles")
+        .update({ subscription_status: "active", plan: input.plan || "esencial" })
+        .eq("id", newUserId);
     }
 
     logger.info("admin.account_created", { adminId: user.id, newUserId, email: input.email });

@@ -5,6 +5,7 @@
 // ============================================================
 
 const { withHandler } = require("./_lib/handler");
+const { requireActiveSubscription } = require("./_lib/auth");
 const { validate, parseJsonBody, schemas, z } = require("./_lib/validate");
 const { ok } = require("./_lib/response");
 
@@ -14,6 +15,7 @@ exports.handler = withHandler(
   { name: "fleet-close-trip", methods: ["POST"] },
   async ({ event, admin, user }) => {
     const { trip_id } = validate(schema, parseJsonBody(event));
+    await requireActiveSubscription(admin, user.id);
     // RBAC y "trip not found" se validan dentro de fn_close_trip_and_reconcile
     // (mismo patrón que fn_register_payment): una sola transacción autoritativa.
     const { data, error } = await admin.rpc("fn_close_trip_and_reconcile", {

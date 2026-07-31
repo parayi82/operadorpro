@@ -3,10 +3,10 @@
 // (persona física o moral) de la empresa. Solo owner/admin.
 //
 // NUNCA toca stripe_customer_id/stripe_subscription_id/subscription_status
-// — esas columnas solo las escribe fleet-stripe-webhook.js (protegido
-// además a nivel de RLS, ver hotfix_billing_rls.sql). No es necesario
-// ni posible pasarlas aquí: el UPDATE solo incluye las columnas de este
-// endpoint, por diseño.
+// (columnas legacy de un modelo de cobro por unidad que ya no se usa —
+// Flota está incluida en la suscripción de certificación, ver
+// requireActiveSubscription en _lib/auth.js). El UPDATE solo incluye las
+// columnas de este endpoint, por diseño.
 // ============================================================
 
 const { withHandler } = require("./_lib/handler");

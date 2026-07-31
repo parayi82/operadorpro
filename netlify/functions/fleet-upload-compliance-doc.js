@@ -10,7 +10,7 @@
 // ============================================================
 
 const { withHandler } = require("./_lib/handler");
-const { requireCompanyRole } = require("./_lib/auth");
+const { requireCompanyRole, requireActiveSubscription } = require("./_lib/auth");
 const { validate, parseJsonBody, schemas } = require("./_lib/validate");
 const { created } = require("./_lib/response");
 const { invalidate } = require("./_lib/cache");
@@ -19,6 +19,7 @@ exports.handler = withHandler(
   { name: "fleet-upload-compliance-doc", methods: ["POST"] },
   async ({ event, admin, user }) => {
     const input = validate(schemas.createComplianceDoc, parseJsonBody(event));
+    await requireActiveSubscription(admin, user.id);
     await requireCompanyRole(admin, user.id, input.company_id, ["owner", "admin"]);
 
     const { data, error } = await admin.rpc("fn_create_compliance_document", {
