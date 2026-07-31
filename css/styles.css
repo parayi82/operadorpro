@@ -35,6 +35,8 @@ body {
   background: var(--niebla);
   line-height: 1.6;
   font-size: 17px;
+  overflow-x: hidden; /* red de seguridad: el contenido ancho debe scrollear
+    dentro de su propio contenedor (ver .table-scroll), nunca toda la página */
 }
 
 h1, h2, h3, .display {
@@ -69,7 +71,7 @@ a { color: var(--verde); }
 }
 .topbar .container {
   display: flex; align-items: center; justify-content: space-between;
-  height: 62px;
+  flex-wrap: wrap; min-height: 62px; padding-top: 8px; padding-bottom: 8px;
 }
 .logo {
   font-family: var(--font-display);
@@ -287,4 +289,6 @@ input:focus, select:focus { outline: none; border-color: var(--verde); }
   .sign { padding: 32px 24px; }
   .sign .exit { position: static; text-align: left; margin-bottom: 12px; }
   .topbar nav a.nav-extra { display: none; }
+  .logo { font-size: 20px; }
+  #company-switcher { max-width: 45vw; }
 }

@@ -31,8 +31,12 @@
 .badge.por_vencer, .badge.pendiente { background: #FEF3C7; color: var(--ambar); }
 .badge.vencido, .badge.rechazada, .badge.vencida { background: #FEE2E2; color: var(--rojo); }
 
-table.fleet-table { width: 100%; border-collapse: collapse; background: var(--blanco); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
-table.fleet-table th, table.fleet-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--niebla); font-size: 14px; }
+/* Envuelve cada <table class="fleet-table"> en <div class="table-scroll">
+   — en pantallas angostas la tabla se desplaza horizontalmente sola en
+   vez de forzar el scroll horizontal de toda la página. */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius); box-shadow: var(--shadow); }
+table.fleet-table { width: 100%; min-width: 480px; border-collapse: collapse; background: var(--blanco); }
+table.fleet-table th, table.fleet-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--niebla); font-size: 14px; white-space: nowrap; }
 table.fleet-table th { background: var(--asfalto); color: var(--blanco); text-transform: uppercase; font-size: 12px; letter-spacing: .04em; }
 
 .checklist-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--niebla); }

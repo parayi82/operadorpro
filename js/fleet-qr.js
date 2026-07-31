@@ -28,10 +28,10 @@ async function verify() {
     $result.innerHTML = `
       <div class="fleet-card" style="text-align:left">
         <h3>Unidad ${esc(data.vehicle.economic_number)} — ${esc(data.vehicle.plate)}</h3>
-        <table class="fleet-table" style="margin-top:12px">
+        <div class="table-scroll" style="margin-top:12px"><table class="fleet-table">
           <thead><tr><th>Documento</th><th>Vence</th><th>Estatus</th></tr></thead>
           <tbody>${rows}</tbody>
-        </table>
+        </table></div>
       </div>`;
   } catch (e) {
     $result.innerHTML = '<p class="form-msg error">No se pudo consultar el registro. Intenta de nuevo.</p>';

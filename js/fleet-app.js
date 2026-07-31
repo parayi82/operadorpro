@@ -322,10 +322,10 @@ async function renderFlota() {
       </div>
 
       <h3 style="margin-top:26px">Semáforo de vencimientos</h3>
-      <table class="fleet-table">
+      <div class="table-scroll"><table class="fleet-table">
         <thead><tr><th>Documento</th><th>Vence</th><th>Estatus</th><th>Faltan</th></tr></thead>
         <tbody>${docsRows}</tbody>
-      </table>
+      </table></div>
     </div>`;
 
   if (myRole === "owner") {
@@ -450,10 +450,10 @@ async function renderViajes() {
       </div>
 
       <h3 style="margin-top:26px">Viajes</h3>
-      <table class="fleet-table">
+      <div class="table-scroll"><table class="fleet-table">
         <thead><tr><th>Ruta</th><th>Presupuesto</th><th>Gastado</th><th>Restante</th><th>Estatus</th><th></th></tr></thead>
         <tbody>${tripRows}</tbody>
-      </table>
+      </table></div>
 
       <div class="fleet-card" style="margin-top:20px">
         <h3>Registrar gasto (ticket)</h3>
@@ -633,10 +633,10 @@ async function renderCobranza() {
       </div>
 
       <h3 style="margin-top:26px">Facturas</h3>
-      <table class="fleet-table">
+      <div class="table-scroll"><table class="fleet-table">
         <thead><tr><th>Folio</th><th>Monto</th><th>Vence</th><th>Estatus</th><th></th></tr></thead>
         <tbody>${invoiceRows}</tbody>
-      </table>
+      </table></div>
     </div>`;
 
   document.getElementById("c-submit").onclick = async () => {
