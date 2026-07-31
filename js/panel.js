@@ -146,8 +146,20 @@ async function loadCompanyData() {
   state.clients = clients || [];
   state.invoices = invoices || [];
 
-  const { documents } = await callFn("fleet-compliance-dashboard", { query: { company_id: state.companyId } });
-  state.complianceDocs = documents || [];
+  // Sin plan activo, el servidor rechaza esta llamada a propósito (Flota
+  // requiere suscripción) — no debe tronar la carga del resto de la app
+  // (cursos, perfil) para un usuario que apenas se registró y aún no paga.
+  if (isSubscribed()) {
+    try {
+      const { documents } = await callFn("fleet-compliance-dashboard", { query: { company_id: state.companyId } });
+      state.complianceDocs = documents || [];
+    } catch (e) {
+      console.error("loadCompanyData: fleet-compliance-dashboard falló", e);
+      state.complianceDocs = [];
+    }
+  } else {
+    state.complianceDocs = [];
+  }
 }
 
 async function loadAllUserData() {
@@ -1250,7 +1262,13 @@ sb.auth.onAuthStateChange(async (_event, session) => {
   const wasLogged = !!state.session;
   state.session = session;
   if (session && !wasLogged) {
-    await loadAllUserData();
+    try {
+      await loadAllUserData();
+    } catch (e) {
+      // Un fallo cargando datos secundarios (cursos, flota, etc.) no
+      // significa que la sesión sea inválida — nunca se debe deducir eso.
+      console.error("onAuthStateChange: loadAllUserData falló", e);
+    }
   }
   if (!session) resetUserState();
   router();
@@ -1262,7 +1280,13 @@ sb.auth.onAuthStateChange(async (_event, session) => {
     const timeout = new Promise((resolve) => setTimeout(() => resolve({ data: { session: null }, timedOut: true }), 4000));
     const result = await Promise.race([sessionPromise, timeout]);
     state.session = result?.data?.session || null;
-    if (state.session) await loadAllUserData();
+    if (state.session) {
+      try {
+        await loadAllUserData();
+      } catch (e) {
+        console.error("Arranque: loadAllUserData falló (sesión sigue siendo válida)", e);
+      }
+    }
   } catch (e) {
     console.error("Arranque:", e);
     state.session = null;
