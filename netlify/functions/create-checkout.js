@@ -1,8 +1,8 @@
 // ============================================================
 // create-checkout.js — Crea la sesión de Stripe Checkout (suscripción)
 // Requiere variables de entorno en Netlify:
-//   STRIPE_SECRET_KEY, STRIPE_PRICE_ID, SITE_URL,
-//   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+//   STRIPE_SECRET_KEY, STRIPE_PRICE_ESENCIAL, STRIPE_PRICE_PROTEGIDO,
+//   SITE_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 // ============================================================
 
 const Stripe = require("stripe");
@@ -27,7 +27,17 @@ exports.handler = async (event) => {
     }
     const user = userData.user;
 
-    // 2. Reutilizar el customer de Stripe si ya existe
+    // 2. Validar el plan elegido y resolver su price de Stripe
+    const { plan: rawPlan } = JSON.parse(event.body || "{}");
+    const plan = rawPlan === "protegido" ? "protegido" : "esencial";
+    const priceId = plan === "protegido"
+      ? process.env.STRIPE_PRICE_PROTEGIDO
+      : process.env.STRIPE_PRICE_ESENCIAL;
+    if (!priceId) {
+      return { statusCode: 500, body: JSON.stringify({ error: "Plan no configurado en el servidor" }) };
+    }
+
+    // 3. Reutilizar el customer de Stripe si ya existe
     const { data: profile } = await admin
       .from("profiles").select("stripe_customer_id, subscription_status")
       .eq("id", user.id).single();
@@ -46,13 +56,15 @@ exports.handler = async (event) => {
       await admin.from("profiles").update({ stripe_customer_id: customerId }).eq("id", user.id);
     }
 
-    // 3. Crear la sesión de Checkout
+    // 4. Crear la sesión de Checkout
     const site = process.env.SITE_URL;
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
-      line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       client_reference_id: user.id,
+      metadata: { plan },
+      subscription_data: { metadata: { plan } },
       success_url: `${site}/app.html#/suscripcion-exito`,
       cancel_url: `${site}/app.html#/dashboard`,
       locale: "es",

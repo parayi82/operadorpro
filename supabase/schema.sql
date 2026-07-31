@@ -16,6 +16,7 @@ create table if not exists public.profiles (
   unidades text[] default '{}', -- ej. {'Tractocamión 5a rueda','Doble remolque'}
   stripe_customer_id text,
   subscription_status text not null default 'inactive', -- inactive | active | past_due | canceled
+  plan text not null default 'esencial' check (plan in ('esencial','protegido')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -32,9 +33,10 @@ create policy "perfil: actualizar propio" on public.profiles
   for update using (auth.uid() = id)
   with check (
     auth.uid() = id
-    -- El estado de suscripción solo lo modifica el webhook (service role)
+    -- El estado de suscripción y el plan solo los modifica el webhook (service role)
     and subscription_status = (select p.subscription_status from public.profiles p where p.id = auth.uid())
     and coalesce(stripe_customer_id,'') = coalesce((select p.stripe_customer_id from public.profiles p where p.id = auth.uid()),'')
+    and plan = (select p.plan from public.profiles p where p.id = auth.uid())
   );
 
 -- Crear perfil automáticamente al registrarse

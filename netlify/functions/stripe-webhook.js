@@ -26,10 +26,12 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: "Firma inválida" };
   }
 
-  const setStatus = async (customerId, status) => {
+  const setStatus = async (customerId, status, plan) => {
+    const update = { subscription_status: status, updated_at: new Date().toISOString() };
+    if (plan === "esencial" || plan === "protegido") update.plan = plan;
     const { error } = await admin
       .from("profiles")
-      .update({ subscription_status: status, updated_at: new Date().toISOString() })
+      .update(update)
       .eq("stripe_customer_id", customerId);
     if (error) console.error("Error actualizando perfil:", error.message);
   };
@@ -38,24 +40,25 @@ exports.handler = async (event) => {
     switch (stripeEvent.type) {
       case "checkout.session.completed": {
         const session = stripeEvent.data.object;
+        const plan = session.metadata?.plan === "protegido" ? "protegido" : "esencial";
+        const update = {
+          stripe_customer_id: session.customer,
+          subscription_status: "active",
+          plan,
+          updated_at: new Date().toISOString()
+        };
         // Respaldo por si el customer no quedó ligado al perfil
         if (session.client_reference_id) {
-          await admin.from("profiles")
-            .update({
-              stripe_customer_id: session.customer,
-              subscription_status: "active",
-              updated_at: new Date().toISOString()
-            })
-            .eq("id", session.client_reference_id);
+          await admin.from("profiles").update(update).eq("id", session.client_reference_id);
         } else {
-          await setStatus(session.customer, "active");
+          await admin.from("profiles").update(update).eq("stripe_customer_id", session.customer);
         }
         break;
       }
       case "customer.subscription.updated": {
         const sub = stripeEvent.data.object;
         const map = { active: "active", trialing: "active", past_due: "past_due", canceled: "canceled", unpaid: "past_due", incomplete: "inactive", incomplete_expired: "inactive" };
-        await setStatus(sub.customer, map[sub.status] || "inactive");
+        await setStatus(sub.customer, map[sub.status] || "inactive", sub.metadata?.plan);
         break;
       }
       case "customer.subscription.deleted": {
