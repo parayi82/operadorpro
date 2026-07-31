@@ -5,6 +5,12 @@
    ============================================================ */
 
 :root {
+  /* El sitio está diseñado en un solo tema (colores fijos, no hay
+     variante oscura). Sin esto, el "tema oscuro automático" de Chrome
+     en Android intenta invertir colores elemento por elemento y puede
+     romper el contraste de botones como .btn-primary (texto oscuro
+     sobre fondo amarillo se vuelve casi ilegible). */
+  color-scheme: light;
   --verde: #05603A;
   --verde-oscuro: #044A2D;
   --amarillo: #FFC400;
