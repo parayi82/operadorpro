@@ -35,4 +35,21 @@ async function requireCompanyRole(admin, userId, companyId, roles) {
   return data.role;
 }
 
-module.exports = { requireUser, requireCompanyRole };
+// Verifica que el usuario sea administrador de PLATAFORMA (acceso
+// transversal a todas las empresas). platform_admins no tiene ninguna
+// política RLS a propósito — esta consulta solo puede resolverla el
+// cliente admin (service role, que ignora RLS). Usar SIEMPRE como
+// primer chequeo en cualquier función fleet-admin-*.js, antes de tocar
+// cualquier otro dato.
+async function requirePlatformAdmin(admin, userId) {
+  const { data, error } = await admin
+    .from("platform_admins")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) throw new ForbiddenError("Acceso exclusivo para administradores de la plataforma");
+}
+
+module.exports = { requireUser, requireCompanyRole, requirePlatformAdmin };

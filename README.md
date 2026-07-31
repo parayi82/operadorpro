@@ -1,28 +1,29 @@
-# OperadorPro — MVP + Módulo de Gestión de Flota
+# OperadorPro — Plataforma unificada de operadores y flota
 
-Plataforma de capacitación y certificación por suscripción para operadores de
-tractocamión y autotransporte federal, **más un módulo de gestión de flota**
-para el dueño del camión/empresa: cumplimiento documental con QR, viáticos
-con OCR de tickets, inspección pre-viaje (NOM-068) y cobranza de fletes.
+Una sola plataforma para el sector de autotransporte en México — **un solo
+acceso** (`app.html`), sin importar si el usuario es un chofer que solo
+busca certificarse, un "hombre-camión" dueño de su unidad, o una empresa
+(persona física o moral, mismo servicio para ambas):
 
-**Incluye en este MVP:**
-- Landing de venta (`index.html`)
-- Panel del operador (`app.html`): registro/login, 3 cursos con lecciones,
-  exámenes de 10 reactivos (aprueba con 8), perfil profesional
-- Certificados PDF con folio único tipo placa y código QR
-- Verificador público de certificados (`verificar.html`)
-- Suscripción mensual con Stripe Checkout + webhook de sincronización
-- Emisión de certificados validada 100% del lado del servidor
-- **Panel de flota (`fleet.html`)**: cumplimiento documental con semáforo y
-  QR por unidad, viáticos con captura de ticket + OCR, inspección pre-viaje
-  NOM-068 con evidencia fotográfica geolocalizada, y cobranza de fletes con
-  recordatorios automáticos por WhatsApp. Ver `ARCHITECTURE.md` para el
-  diseño completo (RBAC multi-tenant, RLS, rate limiting, caché, etc.)
+- **Certificación**: cursos, exámenes de 10 reactivos (aprueba con 8) y
+  certificados PDF con folio único y QR verificable.
+- **Gestión de flota**: cumplimiento documental con semáforo y QR por
+  unidad, viáticos con OCR de tickets, inspección pre-viaje (NOM-068) con
+  evidencia fotográfica geolocalizada, y cobranza de fletes con
+  recordatorios automáticos por WhatsApp.
+- **Cuenta única**: al registrarte se crea tu perfil de operador Y tu
+  empresa automáticamente — no hay un paso separado de "alta de flota".
+- **Panel de administrador de plataforma** (`admin.html`, acceso
+  restringido): ver y gestionar todas las cuentas, dar de alta manualmente,
+  activar/desactivar suscripciones y suspender accesos.
 
-**Stack:** HTML/CSS/JS sin build · Supabase (Auth + PostgreSQL con RLS +
-Storage) · Netlify (hosting + funciones serverless + funciones programadas) ·
-Stripe (suscripciones) · Upstash Redis (rate limiting/caché, opcional) ·
-jsPDF + QR.
+Ver `ARCHITECTURE.md` para el diseño completo (RBAC multi-tenant, RLS,
+rate limiting, caché, etc.)
+
+**Stack:** HTML/CSS/JS sin build (PWA instalable) · Supabase (Auth +
+PostgreSQL con RLS + Storage) · Netlify (hosting + funciones serverless +
+funciones programadas) · Stripe (dos suscripciones: certificación y flota) ·
+Upstash Redis (rate limiting/caché, opcional) · jsPDF + QR.
 
 ---
 
@@ -221,11 +222,10 @@ El sitio ya es una **Progressive Web App**: en Android/Chrome aparece
 la pantalla de inicio manualmente. Una vez instalada abre en pantalla
 completa, sin barra del navegador, con ícono propio.
 
-- **Android (Chrome)**: entra a `fleet.html`, toca el menú ⋮ → **"Instalar
-  app"** (o aparece un banner automático). También funciona igual para
-  `app.html` (panel de certificación).
-- **iPhone/iPad (Safari)**: entra a `fleet.html` (o `app.html`), toca el
-  botón de compartir (cuadro con flecha ↑) → **"Agregar a inicio"**.
+- **Android (Chrome)**: entra a `app.html`, toca el menú ⋮ → **"Instalar
+  app"** (o aparece un banner automático).
+- **iPhone/iPad (Safari)**: entra a `app.html`, toca el botón de compartir
+  (cuadro con flecha ↑) → **"Agregar a inicio"**.
   Safari ignora el prompt automático de Android pero sí respeta el ícono
   y el modo pantalla completa vía las etiquetas `apple-mobile-web-app-*`
   ya incluidas.
@@ -238,14 +238,67 @@ completa, sin barra del navegador, con ícono propio.
   el caché solo entra si el celular se queda sin señal a media carretera.
   Nunca cachea llamadas a `/.netlify/functions/*` ni a Supabase.
 
-### 7. Primer uso
-1. Entra a `fleet.html`, regístrate o inicia sesión (mismo usuario/contraseña
-   que el panel de certificación si ya tienes cuenta).
-2. Crea tu empresa (te vuelves `owner` automáticamente).
-3. Da de alta unidades, sube documentos de cumplimiento y revisa el semáforo.
+### 7. Plataforma unificada (persona física/moral) y panel de administrador
+
+Ejecuta `supabase/schema_platform.sql` (después de `schema.sql` y
+`schema_fleet.sql`). Hace tres cosas:
+
+1. Agrega `entity_type` (`fisica`/`moral`) a `companies` — dato informativo,
+   no cambia ningún permiso ni funcionalidad; el servicio es el mismo para
+   ambos tipos de contribuyente, como se pidió.
+2. Crea un trigger que **da de alta la empresa automáticamente** al
+   registrarse un usuario nuevo (mismo nombre que puso al registrarse,
+   editable después en Perfil → "Mi empresa"). Ya no existe un paso
+   separado de "crear empresa": un chofer que solo quiere certificarse
+   también tiene una empresa lista si algún día da de alta una unidad.
+3. Crea `platform_admins` — la tabla que da acceso al panel de
+   administrador (`admin.html`). Deliberadamente **sin ninguna política
+   RLS**: con RLS habilitado y cero `create policy`, nadie puede leerla ni
+   escribirla vía el cliente (ni siquiera el propio admin autenticado) —
+   solo la service role key, usada exclusivamente por las funciones
+   `fleet-admin-*.js` después de verificar la sesión, puede tocarla.
+
+**Para activar tu propio acceso de administrador:**
+1. Regístrate normalmente en `app.html` con el correo que quieres usar
+   como administrador (ej. el tuyo).
+2. En el SQL Editor de Supabase, corre (ya viene al final de
+   `schema_platform.sql`, pero puedes ejecutarlo solo si ya corriste el
+   resto antes de registrarte):
+   ```sql
+   insert into public.platform_admins (user_id)
+   select id from auth.users where email = 'TU-CORREO@ejemplo.com'
+   on conflict (user_id) do nothing;
+   ```
+3. Entra a `admin.html` con ese correo. Si tu cuenta no está en
+   `platform_admins`, verás "Tu cuenta no tiene acceso de administrador de
+   plataforma" — no un error confuso, ni datos de otras empresas.
+
+**Qué puedes hacer desde `admin.html`:**
+- Ver todas las empresas (dueño, tipo de contribuyente, RFC, unidades
+  activas, estatus de suscripción, fecha de alta) y todos los usuarios
+  registrados (con las empresas a las que pertenecen y su rol).
+- **Dar de alta manual**: crea una cuenta por correo + nombre sin que la
+  persona se registre sola (útil para onboarding por venta directa/
+  telefónica). Se genera una contraseña temporal que tú le compartes por
+  tu cuenta (ej. WhatsApp) — no depende de que el SMTP de Supabase esté
+  configurado para funcionar.
+- **Activar/desactivar la suscripción de flota manualmente**, sin pasar
+  por Stripe (tratos negociados, cortesías, o corregir un desajuste).
+- **Suspender o reactivar** el acceso de un usuario a una empresa
+  específica, sin afectar a los demás miembros.
+
+### 8. Primer uso
+1. Entra a `app.html`, regístrate o inicia sesión — una sola cuenta te da
+   acceso a cursos y flota, sin pasos separados.
+2. Tu empresa ya existe (se creó sola). Desde **Perfil → Mi empresa**
+   puedes editar el nombre, RFC y tipo de contribuyente (física/moral).
+3. Entra a la pestaña **Flota**: da de alta unidades y choferes, sube
+   documentos de cumplimiento y revisa el semáforo.
 4. Abre un viaje con presupuesto y registra gastos con foto del ticket.
 5. Envía una inspección pre-viaje de prueba (5 fotos + 10 puntos).
 6. Da de alta un cliente y registra una factura de flete.
+7. (Si activaste tu acceso de administrador) entra a `admin.html` y
+   confirma que ves la empresa y el usuario que acabas de crear.
 
 ---
 
@@ -254,9 +307,10 @@ completa, sin barra del navegador, con ícono propio.
 ```
 operadorpro/
 ├── index.html                  Landing de venta
-├── app.html                    Shell del panel de certificación (SPA)
+├── app.html                    Panel UNIFICADO (cursos + flota) — SPA, único acceso
+├── admin.html                  Panel de administrador de plataforma (acceso restringido)
 ├── verificar.html              Verificador público de certificados (QR)
-├── fleet.html                  Shell del panel de flota — dueño/admin (SPA)
+├── fleet.html                  Redirect a app.html#/flota (compatibilidad de links viejos)
 ├── fleet-qr.html               Verificación pública de unidad (QR)
 ├── manifest.webmanifest        Manifest PWA (instalar como app)
 ├── sw.js                       Service worker (red primero, caché de respaldo)
@@ -265,15 +319,16 @@ operadorpro/
 ├── css/fleet.css               Extensión visual del módulo de flota
 ├── js/config.js                Llaves públicas (editar)
 ├── js/courses-data.js          Contenido de cursos y exámenes
-├── js/app.js                   Lógica del panel de certificación
-├── js/fleet-app.js             Lógica del panel de flota
-├── js/register-sw.js           Registra el service worker (app.html y fleet.html)
+├── js/panel.js                 Lógica del panel unificado (cursos + flota, un solo estado)
+├── js/admin-app.js             Lógica del panel de administrador (app aislada a propósito)
+├── js/register-sw.js           Registra el service worker (app.html)
 ├── netlify/functions/
-│   ├── create-checkout.js      Stripe Checkout (suscripción)
-│   ├── stripe-webhook.js       Sincroniza estado de suscripción
+│   ├── create-checkout.js      Stripe Checkout (suscripción de certificación)
+│   ├── stripe-webhook.js       Sincroniza estado de suscripción de certificación
 │   ├── issue-certificate.js    Emite certificado (validación en servidor)
 │   ├── verify-certificate.js   Verificación pública por folio
 │   ├── fleet-create-company.js
+│   ├── fleet-update-company.js          Nombre/RFC/tipo de contribuyente
 │   ├── fleet-create-vehicle.js
 │   ├── fleet-upload-compliance-doc.js
 │   ├── fleet-compliance-dashboard.js
@@ -292,10 +347,15 @@ operadorpro/
 │   ├── fleet-create-checkout.js         Stripe Checkout de flota (por unidad)
 │   ├── fleet-billing-portal.js          Stripe Billing Portal
 │   ├── fleet-stripe-webhook.js          Sincroniza subscription_status de companies
+│   ├── fleet-admin-list-companies.js    (admin) todas las empresas
+│   ├── fleet-admin-list-users.js        (admin) todos los usuarios
+│   ├── fleet-admin-create-account.js    (admin) alta manual con contraseña temporal
+│   ├── fleet-admin-set-subscription.js  (admin) activar/desactivar sin Stripe
+│   ├── fleet-admin-set-member-status.js (admin) suspender/reactivar acceso
 │   ├── domain/                 Reglas de negocio puras (sin I/O)
-│   └── _lib/                   Auth/RBAC, rate limit, validación, logging,
-│                                errores, respuesta, caché, notificaciones, OCR,
-│                                Stripe (cliente + sync de cantidad)
+│   └── _lib/                   Auth/RBAC/requirePlatformAdmin, rate limit, validación,
+│                                logging, errores, respuesta, caché, notificaciones,
+│                                OCR, Stripe (cliente + sync de cantidad)
 ├── scripts/check-rpc-contracts.js  Verifica admin.rpc(...) vs schema_fleet.sql (CI)
 ├── scripts/generate-icons.js   Genera icons/*.png (encoder PNG propio, sin deps)
 ├── test/domain.test.js         Pruebas unitarias de domain/* (node:test)
@@ -303,8 +363,12 @@ operadorpro/
 ├── supabase/schema.sql         Tablas de certificación, trigger de perfil y RLS
 ├── supabase/schema_fleet.sql   Tablas de flota, RBAC multi-tenant, RLS,
 │                                funciones transaccionales, buckets de Storage
+├── supabase/schema_platform.sql    entity_type, alta automática de empresa,
+│                                    platform_admins (acceso de administrador)
 ├── supabase/hotfix_actor_uid.sql    Migración: auth.uid() → actor explícito en RPCs
+├── supabase/hotfix_tenant_isolation.sql  Migración: aislamiento entre empresas
 ├── supabase/migration_billing.sql  Migración: columnas de Stripe en companies
+├── supabase/hotfix_billing_rls.sql Migración: protege columnas de Stripe en companies
 ├── ARCHITECTURE.md             Arquitectura, seguridad, escalabilidad y caché
 ├── netlify.toml
 ├── package.json                 npm run verify → sintaxis + contratos RPC + tests
@@ -337,6 +401,21 @@ operadorpro/
   `verify-certificate.js`.
 - Cabeceras de seguridad (`CSP`, `HSTS`, `Permissions-Policy`) en
   `netlify.toml` aplican a todo el sitio, incluido el panel de flota.
+
+### Administración de plataforma
+- `platform_admins` es la única tabla del sistema sin ninguna política
+  RLS: con RLS habilitado y cero `create policy`, es inalcanzable desde el
+  cliente (ni siquiera para el propio admin autenticado) — solo la
+  service role key puede leerla, y solo la usan las funciones
+  `fleet-admin-*.js` tras verificar la sesión del usuario.
+- `requirePlatformAdmin()` (en `_lib/auth.js`) es el primer chequeo de
+  toda función `fleet-admin-*.js`, antes de tocar cualquier otro dato —
+  mismo patrón que `requireCompanyRole()`, pero para el rol transversal
+  de plataforma en vez del rol dentro de una empresa.
+- El alta manual (`fleet-admin-create-account.js`) genera una contraseña
+  temporal aleatoria de alta entropía (`crypto.randomBytes`) en vez de
+  depender de que el admin elija una — y solo se muestra una vez en el
+  panel, nunca se guarda en la base ni en logs.
 
 ## Cómo agregar un curso nuevo
 1. Agrega el objeto del curso en `js/courses-data.js` (mismo formato:

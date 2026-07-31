@@ -111,6 +111,32 @@ const schemas = {
     pod_url: z.string().url().optional(),
     issued_at: z.string().date().optional(),
     due_date: z.string().date()
+  }),
+
+  updateCompany: z.object({
+    company_id: z.string().uuid(),
+    name: z.string().trim().min(2).max(120).optional(),
+    rfc: z.string().trim().max(13).optional(),
+    entity_type: z.enum(["fisica", "moral"]).optional()
+  }),
+
+  // ---------- Administración de plataforma ----------
+  adminCreateAccount: z.object({
+    email: z.string().trim().email(),
+    full_name: z.string().trim().min(2).max(120),
+    entity_type: z.enum(["fisica", "moral"]).optional(),
+    activate_subscription: z.boolean().optional()
+  }),
+
+  adminSetSubscription: z.object({
+    company_id: z.string().uuid(),
+    subscription_status: z.enum(["inactive", "active", "past_due", "canceled"])
+  }),
+
+  adminSetMemberStatus: z.object({
+    company_id: z.string().uuid(),
+    user_id: z.string().uuid(),
+    status: z.enum(["active", "suspended"])
   })
 };
 

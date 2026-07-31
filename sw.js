@@ -17,7 +17,6 @@
 
 const CACHE_NAME = "operadorpro-shell-v1";
 const APP_SHELL = [
-  "/fleet.html",
   "/fleet-qr.html",
   "/index.html",
   "/app.html",
@@ -25,8 +24,7 @@ const APP_SHELL = [
   "/css/styles.css",
   "/css/fleet.css",
   "/js/config.js",
-  "/js/fleet-app.js",
-  "/js/app.js",
+  "/js/panel.js",
   "/js/courses-data.js",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
