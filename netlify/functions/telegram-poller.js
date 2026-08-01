@@ -15,6 +15,24 @@ const telegramPhotoHandler = require("./telegram-photo-handler");
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN not set");
 
+async function getLatestUpdateId() {
+  return new Promise((resolve, reject) => {
+    const url = `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?limit=1&offset=999999999&timeout=0`;
+    https.get(url, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        try {
+          const parsed = JSON.parse(data);
+          resolve(parsed.ok && parsed.result.length > 0 ? parsed.result[0].update_id : 0);
+        } catch (e) {
+          resolve(0);
+        }
+      });
+    }).on("error", () => resolve(0));
+  });
+}
+
 async function getUpdates(offset) {
   return new Promise((resolve, reject) => {
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${offset}&timeout=0`;
@@ -297,6 +315,23 @@ exports.handler = async (event, context) => {
     } else {
       pollState = data[0];
       lastUpdateId = pollState.last_update_id || 0;
+    }
+
+    // SAFETY: Detectar loop infinito (offset no cambia en 2 ciclos)
+    if (pollState && pollState.updated_at) {
+      const lastUpdateTime = new Date(pollState.updated_at).getTime();
+      const now = new Date().getTime();
+      const minutesWithoutChange = (now - lastUpdateTime) / (1000 * 60);
+
+      if (minutesWithoutChange > 2 && lastUpdateId > 0) {
+        console.warn("WARN: Posible loop infinito detectado. Offset sin cambios por >2 min. Reseteando...");
+        const latestId = await getLatestUpdateId();
+        console.log("INFO: Latest update ID de Telegram:", latestId);
+        if (latestId > 0 && latestId > lastUpdateId) {
+          console.log("INFO: Saltando a latest update:", { from: lastUpdateId, to: latestId });
+          lastUpdateId = latestId;
+        }
+      }
     }
 
     console.log("DEBUG: Iniciando polling", { lastUpdateId, offset: lastUpdateId + 1 });
