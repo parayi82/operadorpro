@@ -59,6 +59,12 @@ async function handleMessage(admin, message) {
     }
 
     if (!session) {
+      // Solo responder a comandos explícitos /start, no a mensajes aleatorios
+      if (!text.startsWith("/")) {
+        // Ignorar mensajes de usuarios no autenticados que no son comandos
+        logger.info("telegram.unauthenticated_message_ignored", { telegramUserId, text: text.substring(0, 20) });
+        return;
+      }
       await telegramSender.send(chatId, "⚠️ No estás autenticado. Usa /start para comenzar.");
       return;
     }
@@ -261,14 +267,19 @@ exports.handler = async (event, context) => {
     // Recuperar el último update_id procesado
     const { data: pollState, error: stateError } = await admin
       .from("telegram_poll_state")
-      .select("last_update_id")
+      .select("id, last_update_id")
       .single();
 
     if (stateError && stateError.code !== "PGRST116") {
       throw stateError;
     }
 
-    const lastUpdateId = pollState?.last_update_id || 0;
+    if (!pollState) {
+      logger.error("telegram.poll_state_missing", { error: "telegram_poll_state vacía" });
+      return { statusCode: 200, body: JSON.stringify({ ok: false, error: "Poll state not initialized" }) };
+    }
+
+    const lastUpdateId = pollState.last_update_id || 0;
     const updates = await getUpdates(lastUpdateId + 1);
 
     let maxUpdateId = lastUpdateId;
@@ -279,12 +290,16 @@ exports.handler = async (event, context) => {
       }
     }
 
-    // Guardar el nuevo offset
+    // Guardar el nuevo offset (SOLO si hay nuevos mensajes)
     if (maxUpdateId > lastUpdateId) {
-      await admin
+      const { error: updateError } = await admin
         .from("telegram_poll_state")
         .update({ last_update_id: maxUpdateId, updated_at: new Date().toISOString() })
-        .eq("id", pollState?.id || (await admin.from("telegram_poll_state").select("id").single()).data.id);
+        .eq("id", pollState.id);
+
+      if (updateError) {
+        logger.error("telegram.poll_state_update_failed", { error: updateError.message });
+      }
     }
 
     logger.info("telegram.polling_complete", { updatesProcessed: updates.length, lastUpdateId, maxUpdateId });
