@@ -9,6 +9,7 @@ const { createClient } = require("@supabase/supabase-js");
 const logger = require("./_lib/logger");
 const telegramAuth = require("./telegram-auth");
 const telegramSender = require("./telegram-send-message");
+const telegramConversation = require("./telegram-conversation");
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN not set");
@@ -55,10 +56,23 @@ async function handleMessage(admin, message) {
       return;
     }
 
+    // Actualizar última actividad
     await admin
       .from("telegram_sessions")
       .update({ last_activity_at: new Date().toISOString() })
       .eq("id", session.id);
+
+    // Verificar si hay una conversación en curso
+    const { data: convState } = await admin
+      .from("telegram_conversation_state")
+      .select("*")
+      .eq("telegram_session_id", session.id)
+      .single();
+
+    if (convState && convState.flow_type !== "none") {
+      await telegramConversation.handleConversationMessage(chatId, text, session, admin);
+      return;
+    }
 
     if (text.startsWith("/auth ")) {
       const code = text.substring(6).trim();
@@ -79,17 +93,20 @@ async function handleMessage(admin, message) {
     }
 
     if (text === "🔍 Inspeccionar" || text === "1") {
-      await telegramSender.send(chatId, "🔍 Nueva Inspección Pre-Viaje\n\nSelecciona la unidad (ingresa número económico):");
+      await telegramConversation.startFlow(chatId, "inspection", session, admin);
+      await telegramSender.send(chatId, "🔍 Nueva Inspeccion Pre-Viaje\n\nSelecciona la unidad (ingresa numero economico):");
       return;
     }
 
     if (text === "🚗 Crear Viaje" || text === "2") {
-      await telegramSender.send(chatId, "🚗 Crear Viaje\n\nEscribe el origen (ciudad/dirección):");
+      await telegramConversation.startFlow(chatId, "trip", session, admin);
+      await telegramSender.send(chatId, "🚗 Crear Viaje\n\nEscribe el origen (ciudad/direccion):");
       return;
     }
 
     if (text === "⛽ Reportar Gasto" || text === "3") {
-      await telegramSender.send(chatId, "⛽ Reportar Gasto de Viaje\n\n¿Cuál es el ID del viaje?");
+      await telegramConversation.startFlow(chatId, "expense", session, admin);
+      await telegramSender.send(chatId, "⛽ Reportar Gasto de Viaje\n\nCual es el ID del viaje?");
       return;
     }
 
@@ -138,12 +155,17 @@ async function showMenu(chatId, session, admin) {
     const status = profile?.subscription_status === "active" ? "✅" : "⚠️";
     const plan = profile?.plan || "esencial";
 
-    await telegramSender.send(chatId, `
-👤 ${profile?.full_name || "Operador"}
-${status} Plan: ${plan === "protegido" ? "Protegido (asesoría legal)" : "Esencial"}
+    const buttons = [
+      ["🔍 Inspeccionar", "🚗 Crear Viaje"],
+      ["⛽ Reportar Gasto", "📋 Ver Estado"],
+      ["↩️ Menu Principal"]
+    ];
 
-¿Qué deseas hacer?
-    `);
+    await telegramSender.send(
+      chatId,
+      `👤 ${profile?.full_name || "Operador"}\n${status} Plan: ${plan === "protegido" ? "Protegido (asesoría legal)" : "Esencial"}\n\nQue deseas hacer?`,
+      buttons
+    );
   } catch (e) {
     logger.error("telegram.menu_error", { chatId, error: e.message });
   }

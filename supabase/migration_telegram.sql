@@ -74,3 +74,19 @@ create table if not exists public.telegram_poll_state (
 insert into public.telegram_poll_state (id, last_update_id)
 select gen_random_uuid(), 0
 where not exists (select 1 from public.telegram_poll_state);
+
+-- ---------- ESTADO DE CONVERSACIÓN ----------
+-- Guarda el estado del flujo conversacional (qué paso está en cada usuario)
+create table if not exists public.telegram_conversation_state (
+  id uuid primary key default gen_random_uuid(),
+  telegram_session_id uuid not null unique references public.telegram_sessions(id) on delete cascade,
+  flow_type text not null check (flow_type in (
+    'none', 'inspection', 'trip', 'expense'
+  )),
+  current_step int default 0,
+  context jsonb default '{}', -- {vehicle_id, trip_id, vehicle_economic_number, etc}
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_conv_session on public.telegram_conversation_state (telegram_session_id);
