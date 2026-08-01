@@ -139,6 +139,23 @@ const schemas = {
     company_id: z.string().uuid(),
     user_id: z.string().uuid(),
     status: z.enum(["active", "suspended"])
+  }),
+
+  // ---------- Telegram Bot ----------
+  telegramAuth: z.object({
+    company_id: z.string().uuid()
+  }),
+
+  telegramQueueItem: z.object({
+    message_type: z.enum([
+      "inspection_create", "inspection_photo", "inspection_checklist",
+      "trip_start", "trip_close", "expense_submit", "document_upload"
+    ]),
+    payload: z.record(z.any())
+  }),
+
+  telegramSyncQueue: z.object({
+    telegram_session_id: z.string().uuid()
   })
 };
 

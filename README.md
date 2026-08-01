@@ -205,12 +205,39 @@ Las columnas `companies.stripe_customer_id`, `stripe_subscription_id` y
 antes de lanzar) quedan sin uso en el esquema — no afectan nada, no hace
 falta borrarlas.
 
-### 6. Instalar como app en el celular (PWA)
+### 6. Bot de Telegram (offline-first)
+
+Los choferes pueden hacer inspecciones, registrar viajes y gastos directamente
+desde Telegram, sin tener que iniciar sesión cada vez. Los datos se encolan
+localmente cuando no hay internet y se sincronizan automáticamente cuando
+conectan.
+
+**Setup rápido:**
+
+1. En Telegram busca `@BotFather`, crea un bot nuevo, copia el token.
+2. En Netlify: **Site settings > Environment variables** → agrega
+   `TELEGRAM_BOT_TOKEN=<token>`.
+3. Redeploy el sitio.
+4. Configura el webhook (ver `docs/TELEGRAM_BOT.md` para instrucciones
+   completas).
+
+**Flujo de usuario:**
+- Chofer abre el bot (`/start`)
+- Genera código de autenticación en el panel web (válido 15 min)
+- Ingresa código en Telegram (`/auth 123456`)
+- Accede a menú: Inspeccionar, Crear viaje, Reportar gasto, Ver estado
+- Con internet → todas las acciones se sincronizan automáticamente
+- Sin internet → quedan en cola, se suben cuando hay conexión
+
+Ver `docs/TELEGRAM_BOT.md` para guía completa de setup, troubleshooting y
+ejemplos de conversación.
+
+### 8. Instalar como app en el celular (PWA)
 
 El sitio ya es una **Progressive Web App**: en Android/Chrome aparece
 "Instalar app" (o se agrega solo al menú), y en iPhone/Safari se agrega a
 la pantalla de inicio manualmente. Una vez instalada abre en pantalla
-completa, sin barra del navegador, con ícono propio.
+completo, sin barra del navegador, con ícono propio.
 
 - **Android (Chrome)**: entra a `app.html`, toca el menú ⋮ → **"Instalar
   app"** (o aparece un banner automático).
@@ -228,7 +255,7 @@ completa, sin barra del navegador, con ícono propio.
   el caché solo entra si el celular se queda sin señal a media carretera.
   Nunca cachea llamadas a `/.netlify/functions/*` ni a Supabase.
 
-### 7. Plataforma unificada (persona física/moral) y panel de administrador
+### 9. Plataforma unificada (persona física/moral) y panel de administrador
 
 Ejecuta `supabase/schema_platform.sql` (después de `schema.sql` y
 `schema_fleet.sql`). Hace tres cosas:
@@ -277,7 +304,7 @@ Ejecuta `supabase/schema_platform.sql` (después de `schema.sql` y
 - **Suspender o reactivar** el acceso de un usuario a una empresa
   específica, sin afectar a los demás miembros.
 
-### 8. Primer uso
+### 10. Primer uso
 1. Entra a `app.html`, regístrate o inicia sesión — una sola cuenta te da
    acceso a cursos y flota, sin pasos separados.
 2. Tu empresa ya existe (se creó sola). Desde **Perfil → Mi empresa**
