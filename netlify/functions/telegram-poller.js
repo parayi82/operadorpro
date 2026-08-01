@@ -13,9 +13,9 @@ const telegramSender = require("./telegram-send-message");
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN not set");
 
-async function getUpdates() {
+async function getUpdates(offset) {
   return new Promise((resolve, reject) => {
-    const url = `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?timeout=0`;
+    const url = `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${offset}&timeout=0`;
     https.get(url, (res) => {
       let data = "";
       res.on("data", (chunk) => (data += chunk));
@@ -157,15 +157,36 @@ exports.handler = async (event, context) => {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    const updates = await getUpdates();
+    // Recuperar el último update_id procesado
+    const { data: pollState, error: stateError } = await admin
+      .from("telegram_poll_state")
+      .select("last_update_id")
+      .single();
 
+    if (stateError && stateError.code !== "PGRST116") {
+      throw stateError;
+    }
+
+    const lastUpdateId = pollState?.last_update_id || 0;
+    const updates = await getUpdates(lastUpdateId + 1);
+
+    let maxUpdateId = lastUpdateId;
     for (const update of updates) {
+      maxUpdateId = Math.max(maxUpdateId, update.update_id);
       if (update.message) {
         await handleMessage(admin, update.message);
       }
     }
 
-    logger.info("telegram.polling_complete", { updatesProcessed: updates.length });
+    // Guardar el nuevo offset
+    if (maxUpdateId > lastUpdateId) {
+      await admin
+        .from("telegram_poll_state")
+        .update({ last_update_id: maxUpdateId, updated_at: new Date().toISOString() })
+        .eq("id", pollState?.id || (await admin.from("telegram_poll_state").select("id").single()).data.id);
+    }
+
+    logger.info("telegram.polling_complete", { updatesProcessed: updates.length, lastUpdateId, maxUpdateId });
     return { statusCode: 200, body: JSON.stringify({ ok: true, processed: updates.length }) };
   } catch (error) {
     logger.error("telegram.polling_error", { error: error.message });
