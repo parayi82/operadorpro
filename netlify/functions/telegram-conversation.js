@@ -81,22 +81,50 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
 
     ctx.vehicle_id = vehicle.id;
     ctx.vehicle_economic_number = vehicle.economic_number;
+    ctx.photos = [];
 
     await updateConversationState(state.id, "inspection", 1, ctx, admin);
     await telegramSender.send(
       chatId,
-      `Unidad ${vehicle.economic_number} seleccionada.\n\nAhora envia una foto del odometro:`
+      `Unidad ${vehicle.economic_number} seleccionada.\n\nEnvia 5 fotos: Frente, Llantas, Motor, Caja trasera, Odometro\n\n(Cuando termines escribe: listo)`
     );
     return;
   }
 
-  // Paso 2: Recibir foto del odómetro (simplificado: solo registrar)
+  // Paso 2: Esperar fotos (hasta 5) - texto "listo" avanza
   if (step === 1) {
-    ctx.odometerPhotoReceived = true;
-    await updateConversationState(state.id, "inspection", 2, ctx, admin);
+    if (text.toLowerCase() === "listo") {
+      if (!ctx.photos || ctx.photos.length === 0) {
+        await telegramSender.send(
+          chatId,
+          "Necesitas al menos una foto. Envia las fotos o escribe 'sin fotos' si no puedes:"
+        );
+        return;
+      }
+
+      ctx.photos_collected = true;
+      await updateConversationState(state.id, "inspection", 2, ctx, admin);
+      await telegramSender.send(
+        chatId,
+        "Gracias. Ahora ingresa el kilometraje actual (numero):"
+      );
+      return;
+    }
+
+    if (text.toLowerCase() === "sin fotos") {
+      ctx.photos_collected = true;
+      await updateConversationState(state.id, "inspection", 2, ctx, admin);
+      await telegramSender.send(
+        chatId,
+        "Ingresa el kilometraje actual (numero):"
+      );
+      return;
+    }
+
+    // Si no es "listo", esperar fotos via handlePhotoMessage
     await telegramSender.send(
       chatId,
-      "Foto registrada. Ingresa el kilometraje actual (numero):"
+      `Fotos recibidas: ${ctx.photos.length}\n\nEnvia mas fotos o escribe 'listo':`
     );
     return;
   }
@@ -127,7 +155,7 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
 
     await telegramSender.send(
       chatId,
-      `Ahora responde el checklist. Por cada item escribe S (si) o N (no):\n\n${checklist.join("\n")}`
+      `Ahora responde el checklist. Por cada item escribe S (si) o N (no):\n\n${checklist.join("\n")}\n\nEscribe: SSSSSNSSSSS (ejemplo)`
     );
     return;
   }
@@ -138,14 +166,14 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
     if (answers.length < 10 || !answers.every(a => ["S", "N"].includes(a))) {
       await telegramSender.send(
         chatId,
-        "Escribe 10 caracteres (S o N). Intenta de nuevo:"
+        "Escribe exactamente 10 caracteres (S o N). Intenta de nuevo:"
       );
       return;
     }
 
     ctx.checklist_answers = answers;
 
-    // Crear inspección en la BD (o agregar a cola si está offline)
+    // Crear inspección en la BD
     try {
       const checklist_items = [
         "frenos", "luces", "llantas_desgaste", "niveles_fluidos", "fugas",
@@ -175,9 +203,23 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
         .from("inspection_checklist_items")
         .insert(checklist_items.map(i => ({ inspection_id: inspection.id, ...i })));
 
+      // Insertar fotos si existen
+      if (ctx.photos && ctx.photos.length > 0) {
+        const photoTypes = ["frente", "llantas", "motor", "caja_trasera", "odometro"];
+        const photos = ctx.photos.map((url, idx) => ({
+          inspection_id: inspection.id,
+          photo_type: photoTypes[idx] || "otro",
+          url
+        }));
+
+        await admin
+          .from("inspection_photos")
+          .insert(photos);
+      }
+
       await telegramSender.send(
         chatId,
-        `Inspeccion completada.\n\nProximos pasos en la app web.\n\nInspecciona otra unidad? Escribe /start para volver al menu.`
+        `Inspeccion completada (${ctx.photos.length} fotos).\n\nInspecciona otra unidad? Escribe /start para volver al menu.`
       );
 
       await resetConversation(state.id, admin);
@@ -355,11 +397,54 @@ async function handleExpenseFlow(chatId, text, session, state, admin) {
     return;
   }
 
-  // Paso 4: Foto del recibo (simplificado)
+  // Paso 4: Foto del recibo (opcional)
   if (step === 3) {
-    // En una versión completa, aquí recibirías la foto y la subirías a Supabase Storage
-    // Por ahora, solo registramos que se intentó capturar
+    // Esperar foto o "sin foto" para avanzar
+    // Las fotos se procesan via handlePhotoMessage en telegram-poller.js
+    // que auto-avanza el flujo cuando se recibe una foto
 
+    if (text.toLowerCase() === "sin foto") {
+      // Crear gasto sin foto
+      try {
+        const { data: expense, error } = await admin
+          .from("expenses")
+          .insert({
+            trip_id: ctx.trip_id,
+            category: ctx.category,
+            amount: ctx.amount,
+            expense_date: new Date().toISOString().split("T")[0],
+            review_status: "pendiente",
+            created_by: session.user_id
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        await telegramSender.send(
+          chatId,
+          `Gasto registrado: ${ctx.category.toUpperCase()} $${ctx.amount} MXN\n\nReporta otro gasto? /start para menu.`
+        );
+
+        await resetConversation(state.id, admin);
+      } catch (e) {
+        logger.error("telegram.expense_create_error", { error: e.message });
+        await telegramSender.send(chatId, "Error al guardar gasto. Intenta de nuevo.");
+        await resetConversation(state.id, admin);
+      }
+      return;
+    }
+
+    // Esperando foto
+    await telegramSender.send(
+      chatId,
+      `Envia una foto del recibo o escribe 'sin foto':`
+    );
+    return;
+  }
+
+  // Paso 5: Crear gasto con foto (llamado después de foto cargada)
+  if (step === 4) {
     try {
       const { data: expense, error } = await admin
         .from("expenses")
@@ -367,6 +452,7 @@ async function handleExpenseFlow(chatId, text, session, state, admin) {
           trip_id: ctx.trip_id,
           category: ctx.category,
           amount: ctx.amount,
+          receipt_url: ctx.receipt_url || null,
           expense_date: new Date().toISOString().split("T")[0],
           review_status: "pendiente",
           created_by: session.user_id
