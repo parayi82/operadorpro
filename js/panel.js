@@ -627,6 +627,21 @@ function renderPerfil() {
       <div class="form-msg" id="cp-msg"></div>
       <button class="btn btn-green" id="cp-save" style="margin-top:8px">Guardar datos de empresa</button>
       <p style="margin-top:14px"><a href="#/flota">Ir al panel de flota →</a></p>
+    </div>
+
+    <div class="lesson-body" style="margin-top:26px">
+      <h2 style="margin-bottom:6px">Telegram — Reportes y gestión desde el celular</h2>
+      <p style="color:var(--gris-texto);margin-bottom:14px">Vincula tu cuenta de Telegram para recibir notificaciones, enviar evidencia de inspecciones y gestionar viajes y gastos sin abrir la app web. Funciona sin internet: los cambios se sincronizan automáticamente cuando reconectes.</p>
+      <div id="tg-status-section" style="margin-bottom:14px"></div>
+      <button class="btn btn-primary" id="tg-gen-code" style="margin-top:8px">Generar código para Telegram</button>
+      <div class="form-msg" id="tg-msg"></div>
+      <div id="tg-code-display" style="display:none;margin-top:14px;padding:16px;background:var(--beige);border-radius:8px;border-left:4px solid var(--verde)">
+        <p style="font-size:12px;color:var(--gris-texto);margin-bottom:8px">Código válido por 15 minutos:</p>
+        <div style="font-size:24px;font-weight:bold;color:var(--asfalto);font-family:monospace;letter-spacing:2px;text-align:center;margin-bottom:8px" id="tg-code-value"></div>
+        <p style="font-size:12px;color:var(--gris-texto);margin-bottom:8px">1. Abre Telegram y busca <strong>@operadorpro_bot</strong></p>
+        <p style="font-size:12px;color:var(--gris-texto);margin-bottom:8px">2. Escribe <strong>/start</strong> y presiona enviar</p>
+        <p style="font-size:12px;color:var(--gris-texto)">3. El bot te pedirá el código, cópialo arriba y listo</p>
+      </div>
     </div>`;
 
   const portal = document.getElementById("perfil-portal");
@@ -682,6 +697,69 @@ function renderPerfil() {
       state.company = company;
       msg.className = "form-msg ok"; msg.textContent = "Datos de empresa guardados.";
     } catch (e) { msg.className = "form-msg error"; msg.textContent = e.message; }
+  };
+
+  // Cargar estado de sesión Telegram
+  async function loadTelegramStatus() {
+    if (!state.companyId) return;
+    const $status = document.getElementById("tg-status-section");
+    try {
+      const session = await callFn("telegram-get-session", {
+        query: { company_id: state.companyId }
+      });
+      const lastActivity = session.last_activity_at
+        ? new Date(session.last_activity_at).toLocaleDateString("es-MX", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+        : "nunca";
+      $status.innerHTML = `<div style="padding:12px;background:var(--verde);color:#fff;border-radius:6px">
+        <strong>✓ Vinculado a Telegram</strong><br>
+        <span style="font-size:12px">Última actividad: ${esc(lastActivity)}</span>
+      </div>`;
+      document.getElementById("tg-gen-code").textContent = "Generar nuevo código";
+    } catch (e) {
+      $status.innerHTML = "";
+    }
+  }
+
+  loadTelegramStatus();
+
+  document.getElementById("tg-gen-code").onclick = async () => {
+    const msg = document.getElementById("tg-msg");
+    const codeDisplay = document.getElementById("tg-code-display");
+    const codeValue = document.getElementById("tg-code-value");
+    const btn = document.getElementById("tg-gen-code");
+
+    if (!state.companyId) {
+      msg.className = "form-msg error";
+      msg.textContent = "No hay una empresa asociada a tu cuenta.";
+      return;
+    }
+
+    msg.className = "form-msg";
+    msg.textContent = "Generando código…";
+    btn.disabled = true;
+
+    try {
+      const result = await callFn("telegram-auth", {
+        method: "POST",
+        body: { company_id: state.companyId }
+      });
+
+      codeValue.textContent = result.code;
+      codeDisplay.style.display = "block";
+      msg.className = "form-msg ok";
+      msg.textContent = "Código generado. Válido por 15 minutos.";
+
+      // Auto-clear después de 15 minutos
+      setTimeout(() => {
+        codeDisplay.style.display = "none";
+        msg.textContent = "";
+      }, 15 * 60 * 1000);
+    } catch (e) {
+      msg.className = "form-msg error";
+      msg.textContent = "Error al generar código: " + e.message;
+    } finally {
+      btn.disabled = false;
+    }
   };
 }
 

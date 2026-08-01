@@ -61,3 +61,16 @@ create policy "telegram_queue: leer propia" on public.telegram_offline_queue
       where ts.id = telegram_session_id and ts.user_id = auth.uid()
     )
   );
+
+-- ---------- ESTADO DEL POLLING ----------
+-- Guarda el último update_id procesado para evitar duplicados
+create table if not exists public.telegram_poll_state (
+  id uuid primary key default gen_random_uuid(),
+  last_update_id bigint default 0,
+  updated_at timestamptz not null default now()
+);
+
+-- Insertar fila inicial si no existe (función programada solo lee)
+insert into public.telegram_poll_state (id, last_update_id)
+select gen_random_uuid(), 0
+where not exists (select 1 from public.telegram_poll_state);
