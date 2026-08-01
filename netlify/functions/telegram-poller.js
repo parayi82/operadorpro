@@ -258,6 +258,9 @@ async function handlePhotoMessage(admin, telegramUserId, chatId, photos) {
 
 // Función programada (cron) — ejecutada por Netlify cada minuto
 exports.handler = async (event, context) => {
+  let pollState = null;
+  let lastUpdateId = 0;
+
   try {
     const admin = createClient(
       process.env.SUPABASE_URL,
@@ -265,47 +268,74 @@ exports.handler = async (event, context) => {
     );
 
     // Recuperar el último update_id procesado
-    const { data: pollState, error: stateError } = await admin
+    const { data, error: stateError } = await admin
       .from("telegram_poll_state")
-      .select("id, last_update_id")
-      .single();
+      .select("*");
+
+    console.log("DEBUG: telegram_poll_state query result:", { data, error: stateError });
 
     if (stateError && stateError.code !== "PGRST116") {
       throw stateError;
     }
 
-    if (!pollState) {
-      logger.error("telegram.poll_state_missing", { error: "telegram_poll_state vacía" });
-      return { statusCode: 200, body: JSON.stringify({ ok: false, error: "Poll state not initialized" }) };
+    if (!data || data.length === 0) {
+      console.log("DEBUG: telegram_poll_state está vacía, inicializando");
+      // Crear fila inicial si no existe
+      const { data: created, error: createErr } = await admin
+        .from("telegram_poll_state")
+        .insert({ last_update_id: 0, updated_at: new Date().toISOString() })
+        .select()
+        .single();
+
+      if (createErr) {
+        console.error("DEBUG: error creando telegram_poll_state:", createErr);
+        throw createErr;
+      }
+
+      pollState = created;
+      lastUpdateId = 0;
+    } else {
+      pollState = data[0];
+      lastUpdateId = pollState.last_update_id || 0;
     }
 
-    const lastUpdateId = pollState.last_update_id || 0;
+    console.log("DEBUG: Iniciando polling", { lastUpdateId, offset: lastUpdateId + 1 });
     const updates = await getUpdates(lastUpdateId + 1);
+    console.log("DEBUG: getUpdates retornó", { count: updates.length, updateIds: updates.map(u => u.update_id) });
 
     let maxUpdateId = lastUpdateId;
     for (const update of updates) {
       maxUpdateId = Math.max(maxUpdateId, update.update_id);
       if (update.message) {
+        console.log("DEBUG: Procesando mensaje", { updateId: update.update_id, userId: update.message.from.id });
         await handleMessage(admin, update.message);
       }
     }
 
-    // Guardar el nuevo offset (SOLO si hay nuevos mensajes)
-    if (maxUpdateId > lastUpdateId) {
-      const { error: updateError } = await admin
+    console.log("DEBUG: Antes de actualizar", { lastUpdateId, maxUpdateId, pollStateId: pollState.id });
+
+    // Guardar el nuevo offset (SIEMPRE, aunque no haya nuevos mensajes)
+    if (pollState && pollState.id) {
+      const { data: updateResult, error: updateError } = await admin
         .from("telegram_poll_state")
         .update({ last_update_id: maxUpdateId, updated_at: new Date().toISOString() })
-        .eq("id", pollState.id);
+        .eq("id", pollState.id)
+        .select();
+
+      console.log("DEBUG: Resultado de actualización", { updateResult, updateError });
 
       if (updateError) {
-        logger.error("telegram.poll_state_update_failed", { error: updateError.message });
+        console.error("ERROR: No se pudo actualizar telegram_poll_state", { error: updateError });
       }
+    } else {
+      console.error("ERROR: pollState sin id válido", { pollState });
     }
 
     logger.info("telegram.polling_complete", { updatesProcessed: updates.length, lastUpdateId, maxUpdateId });
-    return { statusCode: 200, body: JSON.stringify({ ok: true, processed: updates.length }) };
+    return { statusCode: 200, body: JSON.stringify({ ok: true, processed: updates.length, maxUpdateId }) };
   } catch (error) {
-    logger.error("telegram.polling_error", { error: error.message });
-    return { statusCode: 200, body: JSON.stringify({ ok: true, error: error.message }) };
+    console.error("CRITICAL ERROR en telegram-poller:", error);
+    logger.error("telegram.polling_error", { error: error.message, stack: error.stack });
+    return { statusCode: 200, body: JSON.stringify({ ok: false, error: error.message }) };
   }
 };
