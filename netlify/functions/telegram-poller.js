@@ -10,6 +10,7 @@ const logger = require("./_lib/logger");
 const telegramAuth = require("./telegram-auth");
 const telegramSender = require("./telegram-send-message");
 const telegramConversation = require("./telegram-conversation");
+const telegramPhotoHandler = require("./telegram-photo-handler");
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN not set");
@@ -36,6 +37,12 @@ async function handleMessage(admin, message) {
   const telegramUserId = message.from.id.toString();
   const chatId = message.chat.id.toString();
   const text = (message.text || "").trim();
+
+  // Verificar si es una foto
+  if (message.photo && message.photo.length > 0) {
+    await handlePhotoMessage(admin, telegramUserId, chatId, message.photo);
+    return;
+  }
 
   if (!text) return;
 
@@ -168,6 +175,78 @@ async function showMenu(chatId, session, admin) {
     );
   } catch (e) {
     logger.error("telegram.menu_error", { chatId, error: e.message });
+  }
+}
+
+async function handlePhotoMessage(admin, telegramUserId, chatId, photos) {
+  try {
+    const session = await telegramAuth.getSession(telegramUserId, admin);
+    if (!session) {
+      await telegramSender.send(chatId, "⚠️ Primero autenticate con /start");
+      return;
+    }
+
+    const convState = await telegramConversation.getOrCreateConversationState(session.id, admin);
+
+    // Si no hay flujo activo, ignorar la foto
+    if (convState.flow_type === "none") {
+      await telegramSender.send(chatId, "Usa los botones del menu para enviar fotos.");
+      return;
+    }
+
+    // Obtener la foto de mayor resolución (última en el array)
+    const photo = photos[photos.length - 1];
+    const fileId = photo.file_id;
+
+    // Procesar según el flujo
+    if (convState.flow_type === "inspection") {
+      const photoUrl = await telegramPhotoHandler.processPhotoForInspection(
+        fileId,
+        chatId,
+        session,
+        convState,
+        "inspeccion",
+        admin
+      );
+
+      const ctx = convState.context || {};
+      ctx.photos = ctx.photos || [];
+      ctx.photos.push(photoUrl);
+
+      await telegramConversation.updateConversationState(
+        convState.id,
+        "inspection",
+        convState.current_step,
+        ctx,
+        admin
+      );
+
+      await telegramSender.send(chatId, `Foto registrada. Envía ${5 - ctx.photos.length} más o escribe "listo"`);
+    } else if (convState.flow_type === "expense") {
+      const photoUrl = await telegramPhotoHandler.processPhotoForExpense(
+        fileId,
+        chatId,
+        session,
+        admin
+      );
+
+      const ctx = convState.context || {};
+      ctx.receipt_url = photoUrl;
+
+      await telegramConversation.updateConversationState(
+        convState.id,
+        "expense",
+        convState.current_step + 1,
+        ctx,
+        admin
+      );
+
+      // Procesar como si hubiera escrito algo para avanzar en el flujo
+      await telegramConversation.handleConversationMessage(chatId, "listo", session, admin);
+    }
+  } catch (e) {
+    logger.error("telegram.photo_message_error", { error: e.message });
+    await telegramSender.send(chatId, "Error al procesar foto. Intenta de nuevo.");
   }
 }
 
