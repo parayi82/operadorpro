@@ -11,8 +11,7 @@
 [functions."fleet-send-payment-reminders"]
   schedule = "0 14 * * *" # 08:00 hora CDMX, recordatorios de cobranza
 
-[functions."telegram-poller"]
-  schedule = "* * * * *" # cada minuto, procesa mensajes de Telegram
+# telegram-poller removed — using webhook instead (instant responses)
 
 # Las funciones no se cachean (excepto los endpoints públicos que
 # fijan su propio Cache-Control corto, ej. verify-certificate y
