@@ -45,15 +45,7 @@ async function handleMessage(admin, message) {
       if (session) {
         await showMenu(chatId, session, admin);
       } else {
-        await telegramSender.send(chatId, `
-👋 Bienvenido a OperadorPro Telegram.
-
-Para vincular tu cuenta, necesitas un código de autenticación.
-
-Abre la app web en tu dispositivo en la sección de configuración y solicita un código. Luego escribe aquí:
-
-/auth <código>
-        `);
+        await telegramSender.send(chatId, "👋 Bienvenido a OperadorPro Telegram.\n\nPara vincular tu cuenta, necesitas un codigo de autenticacion.\n\nAbre la app web en tu dispositivo en la seccion de configuracion y solicita un codigo. Luego escribe aqui:\n\n/auth CODIGO");
       }
       return;
     }
