@@ -16,24 +16,27 @@ function generateAuthCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Guardamos códigos en caché en memoria (en prod sería mejor Redis).
-// Estructura: { code: { user_id, company_id, created_at, expires_at } }
-const authCodes = new Map();
-
 exports.handler = withHandler(
   { name: "telegram-auth", methods: ["POST"], rateLimit: { limit: 10, windowMs: 60_000 } },
   async ({ event, user, admin }) => {
     const input = validate(schemas.telegramAuth, parseJsonBody(event));
 
     const code = generateAuthCode();
-    const expiresAt = Date.now() + 15 * 60 * 1000; // 15 minutos
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
-    authCodes.set(code, {
-      user_id: user.id,
-      company_id: input.company_id,
-      created_at: Date.now(),
-      expires_at: expiresAt
-    });
+    // Guardar código en BD (no en memoria)
+    const { data, error } = await admin
+      .from("telegram_auth_codes")
+      .insert({
+        code,
+        user_id: user.id,
+        company_id: input.company_id,
+        expires_at: expiresAt
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
 
     // En prod: enviar código por SMS/email, no retornar aquí
     return ok({
@@ -44,19 +47,35 @@ exports.handler = withHandler(
   }
 );
 
-// Validar código y crear sesión Telegram (llamado por webhook del bot)
+// Validar código y crear sesión Telegram (llamado por telegram-poller)
 exports.validateAndCreateSession = async (code, telegramUserId, telegramChatId, admin) => {
-  const stored = authCodes.get(code);
-  if (!stored) throw new UnauthorizedError("Código inválido o expirado");
-  if (Date.now() > stored.expires_at) {
-    authCodes.delete(code);
+  // Buscar código en BD
+  const { data: codeData, error: codeError } = await admin
+    .from("telegram_auth_codes")
+    .select("*")
+    .eq("code", code)
+    .eq("used", false)
+    .single();
+
+  if (codeError || !codeData) {
+    throw new UnauthorizedError("Código inválido o expirado");
+  }
+
+  // Verificar que no ha expirado
+  if (new Date() > new Date(codeData.expires_at)) {
     throw new UnauthorizedError("Código expirado");
   }
 
-  const { user_id, company_id } = stored;
+  const { user_id, company_id } = codeData;
+
+  // Marcar código como usado
+  await admin
+    .from("telegram_auth_codes")
+    .update({ used: true, used_at: new Date().toISOString() })
+    .eq("id", codeData.id);
 
   // Crear/actualizar sesión Telegram
-  const { data, error } = await admin
+  const { data: sessionData, error: sessionError } = await admin
     .from("telegram_sessions")
     .upsert({
       telegram_user_id: telegramUserId,
@@ -69,10 +88,9 @@ exports.validateAndCreateSession = async (code, telegramUserId, telegramChatId, 
     .select()
     .single();
 
-  if (error) throw error;
+  if (sessionError) throw sessionError;
 
-  authCodes.delete(code);
-  return data;
+  return sessionData;
 };
 
 // Recuperar sesión Telegram por telegram_user_id

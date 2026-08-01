@@ -3,6 +3,31 @@
 -- Ejecutar en: Supabase Dashboard > SQL Editor > New query
 -- ============================================================
 
+-- ---------- CÓDIGOS DE AUTENTICACIÓN ----------
+-- Códigos temporales (6 dígitos, válidos 15 minutos) para vincular Telegram
+create table if not exists public.telegram_auth_codes (
+  id uuid primary key default gen_random_uuid(),
+  code text not null unique,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  company_id uuid not null references public.companies(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  used boolean default false,
+  used_at timestamptz
+);
+
+create index if not exists idx_auth_codes_code on public.telegram_auth_codes (code);
+create index if not exists idx_auth_codes_expires on public.telegram_auth_codes (expires_at) where not used;
+
+-- Limpiar códigos expirados automáticamente (opcional, pero bueno tener)
+create or replace function public.cleanup_expired_auth_codes()
+returns void as $$
+begin
+  delete from public.telegram_auth_codes
+  where expires_at < now() and not used;
+end;
+$$ language plpgsql;
+
 -- ---------- SESIONES TELEGRAM ----------
 create table if not exists public.telegram_sessions (
   id uuid primary key default gen_random_uuid(),
