@@ -1,7 +1,7 @@
 // ============================================================
 // telegram-poller.js — Función programada (cron) para polling
-// de Telegram. Se ejecuta cada 5 segundos (configurable en
-// netlify.toml).
+// de Telegram. Se ejecuta cada minuto (configurable en netlify.toml).
+// Sin estado de offsets — Telegram maneja eso automáticamente.
 // ============================================================
 
 const https = require("https");
@@ -13,11 +13,9 @@ const telegramSender = require("./telegram-send-message");
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN not set");
 
-let lastUpdateId = 0;
-
 async function getUpdates() {
   return new Promise((resolve, reject) => {
-    const url = `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=0`;
+    const url = `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?timeout=0`;
     https.get(url, (res) => {
       let data = "";
       res.on("data", (chunk) => (data += chunk));
@@ -159,7 +157,7 @@ ${status} Plan: ${plan === "protegido" ? "Protegido (asesoría legal)" : "Esenci
   }
 }
 
-// Función programada (cron) — se ejecuta cada 5 segundos
+// Función programada (cron) — ejecutada por Netlify cada minuto
 exports.handler = async (event, context) => {
   try {
     const admin = createClient(
@@ -170,8 +168,6 @@ exports.handler = async (event, context) => {
     const updates = await getUpdates();
 
     for (const update of updates) {
-      lastUpdateId = Math.max(lastUpdateId, update.update_id);
-
       if (update.message) {
         await handleMessage(admin, update.message);
       }
