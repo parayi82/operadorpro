@@ -76,6 +76,25 @@ async function handleMessage(admin, message) {
       return;
     }
 
+    // Validar /auth ANTES de verificar sesión (no necesita estar autenticado)
+    if (text.startsWith("/auth ")) {
+      const code = text.substring(6).trim();
+      try {
+        const newSession = await telegramAuth.validateAndCreateSession(
+          code,
+          telegramUserId,
+          chatId,
+          admin
+        );
+        session = newSession;
+        await telegramSender.send(chatId, "✅ ¡Cuenta vinculada! Ahora puedes usar el bot.");
+        await showMenu(chatId, session, admin);
+      } catch (e) {
+        await telegramSender.send(chatId, `❌ ${e.message}`);
+      }
+      return;
+    }
+
     if (!session) {
       // Solo responder a comandos explícitos /start, no a mensajes aleatorios
       if (!text.startsWith("/")) {
@@ -102,24 +121,6 @@ async function handleMessage(admin, message) {
 
     if (convState && convState.flow_type !== "none") {
       await telegramConversation.handleConversationMessage(chatId, text, session, admin);
-      return;
-    }
-
-    if (text.startsWith("/auth ")) {
-      const code = text.substring(6).trim();
-      try {
-        const newSession = await telegramAuth.validateAndCreateSession(
-          code,
-          telegramUserId,
-          chatId,
-          admin
-        );
-        session = newSession;
-        await telegramSender.send(chatId, "✅ ¡Cuenta vinculada! Ahora puedes usar el bot.");
-        await showMenu(chatId, session, admin);
-      } catch (e) {
-        await telegramSender.send(chatId, `❌ ${e.message}`);
-      }
       return;
     }
 
