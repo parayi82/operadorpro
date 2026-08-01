@@ -22,27 +22,24 @@ Bot offline-first para que choferes hagan inspecciones, registren viajes y gasto
    ```
 3. Redeploy el sitio
 
-### 3. Configurar el Webhook
+### 3. Ejecutar Migración de BD
 
-Ejecuta esto en tu terminal (reemplaza `{BOTFATHER_TOKEN}` y `{SITE_URL}`):
+En Supabase SQL Editor, corre:
 
-```bash
-curl -X POST "https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook" \
-  -H "Content-Type: application/json" \
-  -d "{\"url\": \"{SITE_URL}/.netlify/functions/telegram-webhook\"}"
+```sql
+-- archivo: supabase/migration_telegram.sql
+-- (copia el contenido y ejecuta)
 ```
 
-Ejemplo:
-```bash
-curl -X POST "https://api.telegram.org/bot123456789:ABCdefGHIjklmnoPQRstuvWXYZ/setWebhook" \
-  -H "Content-Type: application/json" \
-  -d "{\"url\": \"https://operadorpro.netlify.app/.netlify/functions/telegram-webhook\"}"
-```
+Esto crea las tablas necesarias:
+- `telegram_sessions` → vinculación usuario-Telegram
+- `telegram_conversation_state` → progreso en flujos conversacionales
+- `telegram_poll_state` → offset de último mensaje procesado
 
-Para verificar que está configurado:
-```bash
-curl https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getWebhookInfo
-```
+### 4. Redeploy
+
+El bot está listo. No requiere configurar webhook: usa **polling** (getUpdates cada minuto)
+via función programada `telegram-poller.js` en `netlify.toml`.
 
 ## 📱 Flujo de Usuario (Chofer)
 
@@ -75,35 +72,46 @@ El chofer ve un menú con opciones:
 #### Opción 1️⃣: Inspeccionar (NOM-068)
 
 ```
-🔍 Nueva Inspección Pre-Viaje
+🔍 Nueva Inspeccion Pre-Viaje
 
-Selecciona la unidad (ingresa número económico):
-[escribe: 001]
+Selecciona la unidad (ingresa numero economico):
+> 001
 
-Unidad: Tractocamión 5a rueda (ABC-123-XY)
-Odómetro (km): 
-[escribe: 125450]
+Unidad 001 seleccionada.
 
-Ahora saca 5 fotos:
-1. Frente (unidad completa)
-2. Llantas (vista del conjunto)
-3. Motor (capó abierto)
-4. Caja trasera (sin carga)
-5. Odómetro (pantalla)
+Envia 5 fotos: Frente, Llantas, Motor, Caja trasera, Odometro
+(Cuando termines escribe: listo)
 
-[Chofer envía foto]
-✅ Foto 1/5 guardada
+[Chofer envía foto 1]
+Fotos recibidas: 1
+Envia mas fotos o escribe 'listo':
 
-[... repite para las 5 fotos]
-
-Checklist de seguridad (10 items):
-[✓] Frenos
-[✓] Luces
-[✓] Llantas (desgaste)
+[Chofer envía fotos 2-5]
 ...
 
-✅ Inspección registrada (ID: abc-123)
-Sincronizando cuando llegues a internet...
+[Chofer escribe: listo]
+Gracias. Ahora ingresa el kilometraje actual (numero):
+> 125450
+
+Ahora responde el checklist. Por cada item escribe S (si) o N (no):
+
+1. Frenos
+2. Luces
+3. Llantas (desgaste)
+4. Niveles de fluidos
+5. Fugas
+6. Espejos
+7. Claxon
+8. Extintor
+9. Triangulos de seguridad
+10. Cinturon de seguridad
+
+Escribe: SSSSSNSSSSS (ejemplo)
+> SSSSSNSSSSN
+
+Inspeccion completada (5 fotos).
+
+Inspecciona otra unidad? Escribe /start para volver al menu.
 ```
 
 #### Opción 2️⃣: Crear Viaje
@@ -111,17 +119,20 @@ Sincronizando cuando llegues a internet...
 ```
 🚗 Crear Viaje
 
-Origen (ciudad/dirección):
-[escribe: Guadalajara, Jal]
+Escribe el origen (ciudad/direccion):
+> Guadalajara, Jal
 
-Destino:
-[escribe: México CDMX]
+Escribe el destino:
+> Mexico CDMX
 
-Presupuesto de viaje (MXN):
-[escribe: 5000]
+Presupuesto para gastos (numero en pesos):
+> 5000
 
-✅ Viaje abierto (ID: xyz-789)
-Presupuesto: $5,000 MXN
+Viaje iniciado: Guadalajara, Jal -> Mexico CDMX
+
+Presupuesto: $5000 MXN
+
+Ahora puedes reportar gastos. /start para menu.
 ```
 
 #### Opción 3️⃣: Reportar Gasto
@@ -129,21 +140,23 @@ Presupuesto: $5,000 MXN
 ```
 ⛽ Reportar Gasto de Viaje
 
-¿Cuál es el ID del viaje?
-[escribe: xyz-789]
+Cual es el ID del viaje?
+> xyz-789
 
-Categoría:
-[⛽ Diesel] [🛣️ Caseta] [🍽️ Comida] [🔧 Taller] [📦 Otro]
-[escribe: 1 o ⛽]
+Selecciona categoria: diesel, caseta, comida, taller, otro
+> diesel
 
-Monto (MXN):
-[escribe: 450.50]
+Monto del gasto (numero en pesos):
+> 450.50
 
-Foto del recibo:
+Sube una foto del recibo (o escribe 'sin foto' para omitir):
+
 [Chofer envía foto]
+Foto registrada. Válido por 1 año.
 
-✅ Gasto registrado: $450.50 MXN
-Pendiente de revisión
+Gasto registrado: DIESEL $450.50 MXN
+
+Reporta otro gasto? /start para menu.
 ```
 
 #### Opción 4️⃣: Ver Estado
@@ -159,35 +172,36 @@ Pendiente de revisión
 Más detalles en: https://operadorpro.app
 ```
 
-## 📡 Funcionamiento Offline
+## 📡 Sincronización Offline
 
-### Cómo funciona
+### Nota sobre conectividad
 
-1. **Chofer sin internet**: Toma fotos, completa inspecciones/gastos normalmente
-   - Los datos se guardan **localmente en la cola offline** de la BD
-   - El bot confirma: "⏳ Guardado localmente, se sincronizará cuando tengas internet"
+El **bot de Telegram requiere internet** para recibir y enviar mensajes. Por lo tanto:
 
-2. **Chofer con internet**: Llama `/sync` o el bot sincroniza automáticamente
-   - Todas las acciones pendientes se suben a Supabase
-   - Fotos se transfieren a `trip-evidence` bucket
-   - El bot confirma: "✅ Sincronizado: 3 fotos, 2 gastos, 1 inspección"
+- ✅ Cuando el chofer escribe en Telegram → tiene internet
+- ✅ Fotos se suben inmediatamente a Supabase Storage
+- ✅ Inspecciones/viajes/gastos se crean de inmediato en BD
 
-3. **Flujo de fotos**:
-   - Chofer envía foto via Telegram → se almacena en `telegram_offline_queue`
-   - Con internet → foto se sube a Supabase Storage (`trip-evidence`)
-   - La URL de Supabase se guarda en `inspections_photos`/`expenses`
+### Cola Offline
 
-### Tabla `telegram_offline_queue`
+La tabla `telegram_offline_queue` existe para **futuras aplicaciones móviles** que sí pueden trabajar sin internet. El Telegram bot **no la usa** (no hay caso de uso con Telegram sin internet).
+
+Si construyes una app móvil companion para OperadorPro:
+1. Captura datos localmente (offline)
+2. Guarda en `telegram_offline_queue`
+3. Al conectarse, llama `telegram-sync-queue` para subir todo
+4. Las funciones `processQueueItem` procesan cada tipo de mensaje
+
+### Estructura de `telegram_offline_queue`
 
 ```sql
--- Estructura
 telegram_session_id  (FK → telegram_sessions)
-message_type         ('inspection_create', 'inspection_photo', 'expense_submit', etc.)
-payload              (JSON con todos los datos del evento)
-retry_count          (contador de reintentos si falla)
-last_error           (mensaje de error si falló)
+message_type         ('inspection_create', 'trip_start', 'expense_submit', etc.)
+payload              (JSON: {vehicle_id, origin, amount, ...})
+retry_count          (contador de reintentos en sync)
+last_error           (último error si falló)
 created_at           (cuándo se creó)
-synced_at            (cuándo se sincronizó; NULL = pendiente)
+synced_at            (NULL = pendiente; timestamp = sincronizado)
 ```
 
 ## 🔐 Seguridad

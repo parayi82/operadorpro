@@ -205,32 +205,53 @@ Las columnas `companies.stripe_customer_id`, `stripe_subscription_id` y
 antes de lanzar) quedan sin uso en el esquema — no afectan nada, no hace
 falta borrarlas.
 
-### 6. Bot de Telegram (offline-first)
+### 6. Bot de Telegram (flujos conversacionales offline-first)
 
-Los choferes pueden hacer inspecciones, registrar viajes y gastos directamente
-desde Telegram, sin tener que iniciar sesión cada vez. Los datos se encolan
-localmente cuando no hay internet y se sincronizan automáticamente cuando
-conectan.
+Los choferes pueden hacer inspecciones pre-viaje, registrar viajes y reportar
+gastos directamente desde Telegram, incluyendo captura de fotos como evidencia.
+No requiere abrir la app web; los datos se sincronizan automáticamente cuando
+hay conexión.
 
-**Setup rápido:**
+**Setup:**
 
 1. En Telegram busca `@BotFather`, crea un bot nuevo, copia el token.
 2. En Netlify: **Site settings > Environment variables** → agrega
    `TELEGRAM_BOT_TOKEN=<token>`.
-3. Redeploy el sitio.
-4. Configura el webhook (ver `docs/TELEGRAM_BOT.md` para instrucciones
-   completas).
+3. Ejecuta la migración `supabase/migration_telegram.sql` en Supabase SQL Editor.
+4. Redeploy.
 
-**Flujo de usuario:**
-- Chofer abre el bot (`/start`)
-- Genera código de autenticación en el panel web (válido 15 min)
-- Ingresa código en Telegram (`/auth 123456`)
-- Accede a menú: Inspeccionar, Crear viaje, Reportar gasto, Ver estado
-- Con internet → todas las acciones se sincronizan automáticamente
-- Sin internet → quedan en cola, se suben cuando hay conexión
+**Cómo vincularse:**
+1. Chofer va a Perfil → "Telegram" en el panel web
+2. Click en "Generar código para Telegram"
+3. Copia el código (válido 15 minutos)
+4. En Telegram busca `@<tu-bot-name>` y escribe `/start`
+5. Sigue el prompt: `/auth <codigo>`
+6. Listo → el bot aparece vinculado en Perfil
 
-Ver `docs/TELEGRAM_BOT.md` para guía completa de setup, troubleshooting y
-ejemplos de conversación.
+**Flujos disponibles:**
+
+- **Inspección pre-viaje:** selecciona unidad → envía 5 fotos (frente, llantas,
+  motor, caja trasera, odómetro) → ingresa kilometraje → responde checklist
+  (10 items: frenos, luces, llantas, fluidos, fugas, espejos, claxon,
+  extintor, triángulos, cinturón).
+
+- **Crear viaje:** ingresa origen → destino → presupuesto → se crea automático.
+
+- **Reportar gasto:** ID del viaje → categoría (diesel/caseta/comida/taller)
+  → monto → foto del recibo (opcional).
+
+- **Ver estado:** muestra documentos vencidos/por vencer de la empresa.
+
+**Arquitectura:**
+
+- Polling cada minuto via `telegram-poller.js` (Netlify scheduled function).
+- Cada sesión de Telegram se vincula a un usuario + empresa específica.
+- Conversaciones multi-paso: estado guardado en `telegram_conversation_state`,
+  contexto almacenado en jsonb (fotos, valores parciales, etc.).
+- Fotos subidas a Supabase Storage `evidence` bucket con URLs firmadas.
+- Inspecciones, viajes, gastos creados directamente en BD al completar flujo.
+
+Ver `docs/TELEGRAM_BOT.md` para troubleshooting y ejemplos.
 
 ### 8. Instalar como app en el celular (PWA)
 
