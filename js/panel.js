@@ -248,35 +248,56 @@ function renderLogin() {
 
 function renderRegistro() {
   setNav(false);
+  const state_rg = { step: 1, email: "" }; // step 1: email, step 2: code
   $app.innerHTML = `
     <div class="form-card">
       <h2>Crear tu cuenta</h2>
-      <p style="color:var(--gris-texto);margin-bottom:14px">Una sola cuenta: certifícate como operador y, si eres dueño de tu unidad o de una flota, administra cumplimiento, viáticos, inspección y cobranza — mismo acceso, sin pasos extra.</p>
-      <label for="rg-name">Nombre completo (o de tu empresa)</label>
-      <input id="rg-name" type="text" autocomplete="name" placeholder="Como aparecerá en tu certificado">
-      <label for="rg-email">Correo electrónico</label>
-      <input id="rg-email" type="email" autocomplete="email" placeholder="tucorreo@ejemplo.com">
-      <label for="rg-pass">Contraseña (mínimo 8 caracteres)</label>
-      <input id="rg-pass" type="password" autocomplete="new-password" placeholder="••••••••">
-      <div class="form-msg" id="rg-msg"></div>
-      <button class="btn btn-primary btn-block" id="rg-btn">Crear cuenta</button>
-      <p class="switch-auth">¿Ya tienes cuenta? <a href="#/login">Entra aquí</a></p>
+      <p style="color:var(--gris-texto);margin-bottom:14px">Rápido y fácil. Solo necesitamos tu correo.</p>
+      <div id="rg-step1">
+        <label for="rg-email">Tu correo electrónico</label>
+        <input id="rg-email" type="email" autocomplete="email" placeholder="tucorreo@ejemplo.com">
+        <div class="form-msg" id="rg-msg"></div>
+        <button class="btn btn-primary btn-block" id="rg-btn1">Enviar código</button>
+        <p class="switch-auth">¿Ya tienes cuenta? <a href="#/login">Entra aquí</a></p>
+      </div>
+      <div id="rg-step2" class="hidden">
+        <label for="rg-code">Ingresa el código que recibiste en tu correo:</label>
+        <input id="rg-code" type="text" placeholder="000000" maxlength="6" style="font-size:24px;text-align:center;letter-spacing:8px">
+        <div class="form-msg" id="rg-msg2"></div>
+        <button class="btn btn-primary btn-block" id="rg-btn2">Confirmar código</button>
+        <p class="switch-auth"><a href="#" id="rg-back" style="color:var(--verde)">← Cambiar correo</a></p>
+      </div>
     </div>`;
-  document.getElementById("rg-btn").onclick = async () => {
+
+  document.getElementById("rg-btn1").onclick = async () => {
     const msg = document.getElementById("rg-msg");
-    const name = document.getElementById("rg-name").value.trim();
-    const pass = document.getElementById("rg-pass").value;
-    if (name.length < 5) { msg.className = "form-msg error"; msg.textContent = "Escribe tu nombre completo."; return; }
-    if (pass.length < 8) { msg.className = "form-msg error"; msg.textContent = "La contraseña necesita al menos 8 caracteres."; return; }
-    msg.className = "form-msg"; msg.textContent = "Creando cuenta…";
-    const { error } = await sb.auth.signUp({
-      email: document.getElementById("rg-email").value.trim(),
-      password: pass,
-      options: { data: { full_name: name } }
-    });
+    const email = document.getElementById("rg-email").value.trim().toLowerCase();
+    if (!email.includes("@")) { msg.className = "form-msg error"; msg.textContent = "Correo no válido."; return; }
+    msg.textContent = "Enviando código…";
+    const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    if (error) { msg.className = "form-msg error"; msg.textContent = error.message; return; }
+    state_rg.email = email;
+    msg.textContent = "Código enviado. Revisa tu correo (y spam).";
+    document.getElementById("rg-step1").classList.add("hidden");
+    document.getElementById("rg-step2").classList.remove("hidden");
+  };
+
+  document.getElementById("rg-btn2").onclick = async () => {
+    const msg = document.getElementById("rg-msg2");
+    const code = document.getElementById("rg-code").value.trim();
+    if (code.length !== 6) { msg.className = "form-msg error"; msg.textContent = "Ingresa el código de 6 dígitos."; return; }
+    msg.textContent = "Verificando…";
+    const { error } = await sb.auth.verifyOtp({ email: state_rg.email, token: code, type: "email" });
     if (error) { msg.className = "form-msg error"; msg.textContent = error.message; return; }
     msg.className = "form-msg ok";
-    msg.textContent = "Cuenta creada. Si tu proyecto pide confirmación por correo, revisa tu bandeja y vuelve a entrar.";
+    msg.textContent = "¡Bienvenido! Redirigiendo…";
+    setTimeout(() => location.hash = "#/dashboard", 1500);
+  };
+
+  document.getElementById("rg-back").onclick = (e) => {
+    e.preventDefault();
+    document.getElementById("rg-step1").classList.remove("hidden");
+    document.getElementById("rg-step2").classList.add("hidden");
   };
 }
 
