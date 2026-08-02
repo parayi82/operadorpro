@@ -87,7 +87,12 @@ exports.handler = async (event) => {
       })
     };
   } catch (e) {
-    console.error("create-signup-checkout error:", e);
-    return { statusCode: 500, body: JSON.stringify({ error: "No se pudo iniciar el pago" }) };
+    console.error("create-signup-checkout error:", {
+      message: e.message,
+      stack: e.stack,
+      type: e.type
+    });
+    const errorMsg = e.message || "No se pudo iniciar el pago";
+    return { statusCode: 500, body: JSON.stringify({ error: errorMsg }) };
   }
 };
