@@ -61,7 +61,12 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
 
   // Paso 1: Seleccionar unidad con botones o typing
   if (step === 0) {
-    const economicNumber = text.trim().toUpperCase();
+    // Parse button format "T-001 (ABC-1234)" or just typed "T-001"
+    let economicNumber = text.trim().toUpperCase();
+    const match = economicNumber.match(/^([^\s]+)\s*\(/);
+    if (match) {
+      economicNumber = match[1]; // Extract economic number from button format
+    }
 
     // Buscar la unidad exacta
     const { data: vehicle, error } = await admin
@@ -388,17 +393,28 @@ async function handleExpenseFlow(chatId, text, session, state, admin) {
 
   // Paso 1: Seleccionar viaje con botones o typing
   if (step === 0) {
-    const tripId = text.trim();
+    const buttonText = text.trim();
 
-    // Verificar que el viaje existe y pertenece a la empresa
-    const { data: trip, error } = await admin
+    // First try to find by trip ID (if typed)
+    let tripQuery = admin
       .from("trips")
       .select("id, origin, destination, status")
-      .eq("id", tripId)
-      .eq("company_id", session.company_id)
-      .single();
+      .eq("company_id", session.company_id);
 
-    if (error || !trip) {
+    const { data: trips, error } = await tripQuery;
+
+    let trip = null;
+    if (trips && trips.length > 0) {
+      // Try exact ID match first
+      trip = trips.find(t => t.id === buttonText);
+
+      // If not found, try button format match "Origin → Destination"
+      if (!trip && buttonText.includes("→")) {
+        trip = trips.find(t => `${t.origin} → ${t.destination}` === buttonText);
+      }
+    }
+
+    if (!trip) {
       // Si falla, mostrar viajes recientes como buttons
       if (!ctx.showedTripsOnce) {
         const { data: recentTrips } = await admin
@@ -455,11 +471,17 @@ async function handleExpenseFlow(chatId, text, session, state, admin) {
       "🛣️ Caseta": "caseta",
       "🍔 Comida": "comida",
       "🔧 Taller": "taller",
-      "📦 Otro": "otro"
+      "📦 Otro": "otro",
+      // Support direct text input too
+      "diesel": "diesel",
+      "caseta": "caseta",
+      "comida": "comida",
+      "taller": "taller",
+      "otro": "otro"
     };
 
-    const categoryLabel = Object.keys(categoryMap).find(k => text === k);
-    const category = categoryLabel ? categoryMap[categoryLabel] : text.trim().toLowerCase();
+    const inputText = text.trim();
+    const category = categoryMap[inputText] || categoryMap[inputText.toLowerCase()];
 
     const validCategories = ["diesel", "caseta", "comida", "taller", "otro"];
     if (!validCategories.includes(category)) {
