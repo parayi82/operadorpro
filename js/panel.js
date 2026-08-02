@@ -289,6 +289,20 @@ function renderRegistro() {
     msg.textContent = "Verificando…";
     const { error } = await sb.auth.verifyOtp({ email: state_rg.email, token: code, type: "email" });
     if (error) { msg.className = "form-msg error"; msg.textContent = error.message; return; }
+
+    // Asegurar que el perfil existe (para OTP signup y alta manual)
+    try {
+      const session = await sb.auth.getSession();
+      if (session.data.session?.access_token) {
+        await fetch(FN("ensure-user-profile"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.data.session.access_token}` }
+        });
+      }
+    } catch (e) {
+      console.error("ensure-user-profile error (no es crítico):", e);
+    }
+
     msg.className = "form-msg ok";
     msg.textContent = "¡Bienvenido! Redirigiendo…";
     setTimeout(() => location.hash = "#/dashboard", 1500);
