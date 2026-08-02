@@ -196,7 +196,7 @@
       </ul>
 
       <div class="plan-cta">
-        <button class="btn btn-primary btn-block" onclick="openCheckout('esencial')">Seleccionar plan</button>
+        <button class="btn btn-primary btn-block" onclick="openCheckout('esencial', this)">Seleccionar plan</button>
       </div>
     </div>
 
@@ -222,7 +222,7 @@
       </ul>
 
       <div class="plan-cta">
-        <button class="btn btn-primary btn-block" onclick="openCheckout('protegido')">Seleccionar plan</button>
+        <button class="btn btn-primary btn-block" onclick="openCheckout('protegido', this)">Seleccionar plan</button>
       </div>
     </div>
   </div>
@@ -272,7 +272,7 @@
 </footer>
 
 <script>
-  function openCheckout(planType) {
+  function openCheckout(planType, btn) {
     const email = prompt("Ingresa tu correo electrónico:", "");
     if (!email) return;
 
@@ -281,12 +281,11 @@
       return;
     }
 
-    checkout(email, planType);
+    checkout(email, planType, btn);
   }
 
-  async function checkout(email, plan) {
+  async function checkout(email, plan, btn) {
     try {
-      const btn = event.target;
       btn.disabled = true;
       btn.textContent = "Procesando...";
 
@@ -308,8 +307,8 @@
       window.location.href = data.url;
     } catch (e) {
       alert("Error: " + e.message);
-      event.target.disabled = false;
-      event.target.textContent = "Seleccionar plan";
+      btn.disabled = false;
+      btn.textContent = "Seleccionar plan";
     }
   }
 </script>
