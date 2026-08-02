@@ -196,7 +196,7 @@
       </ul>
 
       <div class="plan-cta">
-        <button class="btn btn-primary btn-block" onclick="selectPlan('esencial')">Seleccionar plan</button>
+        <button class="btn btn-primary btn-block" onclick="openCheckout('esencial')">Seleccionar plan</button>
       </div>
     </div>
 
@@ -222,7 +222,7 @@
       </ul>
 
       <div class="plan-cta">
-        <button class="btn btn-primary btn-block" onclick="selectPlan('protegido')">Seleccionar plan</button>
+        <button class="btn btn-primary btn-block" onclick="openCheckout('protegido')">Seleccionar plan</button>
       </div>
     </div>
   </div>
@@ -272,13 +272,45 @@
 </footer>
 
 <script>
-  function selectPlan(planType) {
-    // Guardar el plan seleccionado en sessionStorage
-    sessionStorage.setItem('selectedPlan', planType);
+  function openCheckout(planType) {
+    const email = prompt("Ingresa tu correo electrónico:", "");
+    if (!email) return;
 
-    // Redirigir a página de pago/checkout
-    // Por ahora, ir a la app con parámetro de plan
-    window.location.href = 'app.html#/pagar?plan=' + planType;
+    if (!email.includes("@")) {
+      alert("Por favor ingresa un email válido");
+      return;
+    }
+
+    checkout(email, planType);
+  }
+
+  async function checkout(email, plan) {
+    try {
+      const btn = event.target;
+      btn.disabled = true;
+      btn.textContent = "Procesando...";
+
+      const response = await fetch("/.netlify/functions/create-signup-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.toLowerCase(), plan })
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.url) {
+        alert(data.error || "Error al iniciar el pago");
+        btn.disabled = false;
+        btn.textContent = "Seleccionar plan";
+        return;
+      }
+
+      // Redirigir a Stripe Checkout
+      window.location.href = data.url;
+    } catch (e) {
+      alert("Error: " + e.message);
+      event.target.disabled = false;
+      event.target.textContent = "Seleccionar plan";
+    }
   }
 </script>
 

@@ -181,6 +181,7 @@ const routes = {
   "/dashboard": renderDashboard,
   "/login": renderLogin,
   "/registro": renderRegistro,
+  "/pago-confirmado": renderPagoConfirmado,
   "/certificados": renderCertificados,
   "/perfil": renderPerfil,
   "/suscripcion-exito": renderSuscripcionExito,
@@ -193,7 +194,7 @@ const FLEET_ROUTES = ["/flota", "/viajes", "/inspecciones", "/cobranza"];
 
 async function router() {
   const hash = location.hash.replace(/^#/, "") || "/dashboard";
-  const publicRoutes = ["/login", "/registro"];
+  const publicRoutes = ["/login", "/registro", "/pago-confirmado"];
 
   if (!state.session && !publicRoutes.includes(hash)) { location.hash = "#/login"; return; }
   if (state.session && publicRoutes.includes(hash)) { location.hash = "#/dashboard"; return; }
@@ -277,6 +278,28 @@ function renderRegistro() {
     msg.className = "form-msg ok";
     msg.textContent = "Cuenta creada. Si tu proyecto pide confirmación por correo, revisa tu bandeja y vuelve a entrar.";
   };
+}
+
+// ---------- Vista: Pago Confirmado ----------
+function renderPagoConfirmado() {
+  setNav(false);
+  $app.innerHTML = `
+    <div class="form-card" style="text-align:center;max-width:500px">
+      <div style="font-size:56px;margin-bottom:16px">✓</div>
+      <h2>¡Pago confirmado!</h2>
+      <p style="color:var(--gris-texto);margin-bottom:24px">Tu suscripción está activa. Tu cuenta se ha creado y estará lista en unos momentos.</p>
+      <div class="form-msg ok" style="margin-bottom:24px">
+        Revisa tu correo para instrucciones de acceso. Si no ves el email, verifica la bandeja de spam.
+      </div>
+      <p style="margin-bottom:24px;color:var(--gris-texto);font-size:14px">Estamos preparando tu cuenta. Serás redirigido automáticamente en 5 segundos o puedes hacer click abajo.</p>
+      <a href="app.html#/login" class="btn btn-primary btn-block">Ir a la app</a>
+      <p style="margin-top:16px;font-size:13px;color:var(--gris-texto)"><a href="index.html">← Volver al inicio</a></p>
+    </div>`;
+
+  // Redirigir a login después de 5 segundos
+  setTimeout(() => {
+    location.href = "app.html#/login";
+  }, 5000);
 }
 
 // ---------- Vista: Dashboard (cursos) ----------

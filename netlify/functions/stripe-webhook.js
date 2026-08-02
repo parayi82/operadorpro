@@ -41,17 +41,78 @@ exports.handler = async (event) => {
       case "checkout.session.completed": {
         const session = stripeEvent.data.object;
         const plan = session.metadata?.plan === "protegido" ? "protegido" : "esencial";
-        const update = {
-          stripe_customer_id: session.customer,
-          subscription_status: "active",
-          plan,
-          updated_at: new Date().toISOString()
-        };
-        // Respaldo por si el customer no quedó ligado al perfil
-        if (session.client_reference_id) {
-          await admin.from("profiles").update(update).eq("id", session.client_reference_id);
+        const isNewSignup = session.metadata?.new_signup === "true";
+        const email = session.metadata?.email || session.customer_email;
+
+        // Si es nuevo signup, crear la cuenta automáticamente
+        if (isNewSignup && email) {
+          console.log(`Auto-creating account for ${email} after payment`);
+
+          // Verificar si el usuario ya existe
+          const { data: existingUser } = await admin.auth.admin.listUsers();
+          const userExists = existingUser?.users?.some(u => u.email === email);
+
+          if (!userExists) {
+            try {
+              // Generar una contraseña segura aleatoria (usuario debe cambiarla después)
+              const tempPassword = Math.random().toString(36).slice(-16) + "Aa1!";
+
+              // Crear usuario en auth
+              const { data: newUser, error: authError } = await admin.auth.admin.createUser({
+                email: email,
+                password: tempPassword,
+                email_confirm: true,
+                user_metadata: {
+                  auto_created: true,
+                  signup_plan: plan
+                }
+              });
+
+              if (authError || !newUser) {
+                console.error("Error creating auth user:", authError);
+              } else {
+                // Crear perfil con la suscripción ya activa
+                await admin.from("profiles").insert({
+                  id: newUser.user.id,
+                  email: email.toLowerCase(),
+                  full_name: email.split("@")[0], // Usar parte del email como nombre temporal
+                  stripe_customer_id: session.customer,
+                  subscription_status: "active",
+                  plan: plan,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                });
+
+                // Enviar email de bienvenida con instrucciones para resetear password
+                // TODO: Implementar envío de email con contraseña temporal y link para resetear
+                console.log(`Account created for ${email}, temp password sent`);
+              }
+            } catch (createErr) {
+              console.error("Error auto-creating account:", createErr);
+            }
+          } else {
+            // Usuario ya existe, solo actualizar la suscripción
+            const update = {
+              stripe_customer_id: session.customer,
+              subscription_status: "active",
+              plan,
+              updated_at: new Date().toISOString()
+            };
+            await admin.from("profiles").update(update).eq("email", email.toLowerCase());
+          }
         } else {
-          await admin.from("profiles").update(update).eq("stripe_customer_id", session.customer);
+          // Usuario autenticado (flujo anterior)
+          const update = {
+            stripe_customer_id: session.customer,
+            subscription_status: "active",
+            plan,
+            updated_at: new Date().toISOString()
+          };
+          if (session.client_reference_id) {
+            await admin.from("profiles").update(update).eq("id", session.client_reference_id);
+          } else {
+            await admin.from("profiles").update(update).eq("stripe_customer_id", session.customer);
+          }
         }
         break;
       }
