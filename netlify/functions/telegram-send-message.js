@@ -19,9 +19,11 @@ async function send(chatId, text, buttons = null, replyMode = false) {
   };
 
   if (buttons) {
-    // buttons = [["Botón 1", "callback_1"], ["Botón 2", "callback_2"]]
+    // buttons = [["Botón 1", "Botón 2"], ["Botón 3"]]
     payload.reply_markup = {
-      keyboard: buttons.map(row => row.map(([label]) => ({ text: label }))),
+      keyboard: buttons.map(row => row.map(label => ({
+        text: typeof label === "string" ? label : label[0]
+      }))),
       resize_keyboard: true,
       one_time_keyboard: !replyMode,
       selective: false

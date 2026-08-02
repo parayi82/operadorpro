@@ -59,11 +59,11 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
   const step = state.current_step;
   const ctx = state.context || {};
 
-  // Paso 1: Seleccionar unidad (número económico)
+  // Paso 1: Seleccionar unidad con botones o typing
   if (step === 0) {
     const economicNumber = text.trim().toUpperCase();
 
-    // Buscar la unidad
+    // Buscar la unidad exacta
     const { data: vehicle, error } = await admin
       .from("vehicles")
       .select("id, economic_number, plate")
@@ -72,10 +72,32 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
       .single();
 
     if (error || !vehicle) {
+      // Si falla, mostrar vehículos disponibles como buttons
+      if (!ctx.showedVehiclesOnce) {
+        const { data: vehicles } = await admin
+          .from("vehicles")
+          .select("economic_number, plate")
+          .eq("company_id", session.company_id)
+          .limit(6);
+
+        if (vehicles && vehicles.length > 0) {
+          ctx.showedVehiclesOnce = true;
+          await updateConversationState(state.id, "inspection", 0, ctx, admin);
+          const buttons = vehicles.map(v => [`${v.economic_number} (${v.plate})`]);
+          await telegramSender.send(
+            chatId,
+            "Selecciona una unidad o escribe el numero economico:",
+            buttons
+          );
+          return;
+        }
+      }
+
       await telegramSender.send(
         chatId,
-        "No encontre una unidad con ese numero. Ingresa el numero economico de nuevo:"
+        "No hay unidades disponibles. Configura una en la app web."
       );
+      await resetConversation(state.id, admin);
       return;
     }
 
@@ -84,20 +106,25 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
     ctx.photos = [];
 
     await updateConversationState(state.id, "inspection", 1, ctx, admin);
+
+    const buttons = [["📸 Foto"], ["✅ Listo"], ["⏭️ Sin fotos"]];
     await telegramSender.send(
       chatId,
-      `Unidad ${vehicle.economic_number} seleccionada.\n\nEnvia 5 fotos: Frente, Llantas, Motor, Caja trasera, Odometro\n\n(Cuando termines escribe: listo)`
+      `Unidad ${vehicle.economic_number} seleccionada.\n\nEnvia fotos: Frente, Llantas, Motor, Caja trasera, Odometro\n\n(Cuando termines: Listo)`
     );
     return;
   }
 
-  // Paso 2: Esperar fotos (hasta 5) - texto "listo" avanza
+  // Paso 2: Esperar fotos (hasta 5) con botones
   if (step === 1) {
-    if (text.toLowerCase() === "listo") {
+    const buttons = [["✅ Listo"], ["⏭️ Sin fotos"]];
+
+    if (text === "✅ Listo") {
       if (!ctx.photos || ctx.photos.length === 0) {
         await telegramSender.send(
           chatId,
-          "Necesitas al menos una foto. Envia las fotos o escribe 'sin fotos' si no puedes:"
+          "Necesitas al menos una foto. Envia las fotos o usa 'Sin fotos':",
+          buttons
         );
         return;
       }
@@ -111,7 +138,7 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
       return;
     }
 
-    if (text.toLowerCase() === "sin fotos") {
+    if (text === "⏭️ Sin fotos") {
       ctx.photos_collected = true;
       await updateConversationState(state.id, "inspection", 2, ctx, admin);
       await telegramSender.send(
@@ -121,10 +148,20 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
       return;
     }
 
-    // Si no es "listo", esperar fotos via handlePhotoMessage
+    // Si es texto pero no botón, es mensaje de foto
+    if (!text.startsWith("✅") && !text.startsWith("⏭️")) {
+      await telegramSender.send(
+        chatId,
+        `Fotos recibidas: ${ctx.photos.length || 0}\n\nEnvia mas fotos o usa los botones:`,
+        buttons
+      );
+      return;
+    }
+
     await telegramSender.send(
       chatId,
-      `Fotos recibidas: ${ctx.photos.length}\n\nEnvia mas fotos o escribe 'listo':`
+      `Fotos recibidas: ${ctx.photos.length || 0}\n\nEnvia mas fotos o usa los botones:`,
+      buttons
     );
     return;
   }
@@ -140,94 +177,114 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
     ctx.odometer_km = odometer;
     await updateConversationState(state.id, "inspection", 3, ctx, admin);
 
-    const checklist = [
-      "1. Frenos",
-      "2. Luces",
-      "3. Llantas (desgaste)",
-      "4. Niveles de fluidos",
-      "5. Fugas",
-      "6. Espejos",
-      "7. Claxon",
-      "8. Extintor",
-      "9. Triangulos de seguridad",
-      "10. Cinturon de seguridad"
-    ];
-
+    const buttons = [["✅ Sí", "❌ No"]];
     await telegramSender.send(
       chatId,
-      `Ahora responde el checklist. Por cada item escribe S (si) o N (no):\n\n${checklist.join("\n")}\n\nEscribe: SSSSSNSSSSS (ejemplo)`
+      "Ahora responde el checklist. 10 items con botones Sí/No:\n\n1/10: Frenos",
+      buttons
     );
     return;
   }
 
-  // Paso 4: Recopilar respuestas del checklist (10 items)
+  // Paso 4: Recopilar respuestas del checklist (10 items) — usa botones
   if (step === 3) {
-    const answers = text.trim().toUpperCase().split("").slice(0, 10);
-    if (answers.length < 10 || !answers.every(a => ["S", "N"].includes(a))) {
-      await telegramSender.send(
-        chatId,
-        "Escribe exactamente 10 caracteres (S o N). Intenta de nuevo:"
-      );
+    const buttons = [["✅ Sí", "❌ No"]];
+
+    if (!ctx.checklist_answers) {
+      ctx.checklist_answers = [];
+      ctx.checklist_item_index = 0;
+    }
+
+    const itemIndex = ctx.checklist_item_index || 0;
+    const checklist = [
+      "Frenos", "Luces", "Llantas (desgaste)", "Niveles de fluidos", "Fugas",
+      "Espejos", "Claxon", "Extintor", "Triangulos de seguridad", "Cinturon de seguridad"
+    ];
+
+    // Procesar respuesta anterior (si no es primer item)
+    if (itemIndex > 0) {
+      if (text === "✅ Sí") {
+        ctx.checklist_answers.push("S");
+      } else if (text === "❌ No") {
+        ctx.checklist_answers.push("N");
+      } else {
+        await telegramSender.send(chatId, `${itemIndex}/${checklist.length}: Usa los botones Sí/No`, buttons);
+        return;
+      }
+    }
+
+    // Si completamos todos los items
+    if (ctx.checklist_answers.length === 10) {
+      const answers = ctx.checklist_answers;
+
+      // Crear inspección en la BD
+      try {
+        const checklist_items = [
+          "frenos", "luces", "llantas_desgaste", "niveles_fluidos", "fugas",
+          "espejos", "claxon", "extintor", "triangulos", "cinturon"
+        ].map((key, idx) => ({
+          item_key: key,
+          ok: answers[idx] === "S",
+          notes: ""
+        }));
+
+        const { data: inspection, error } = await admin
+          .from("inspections")
+          .insert({
+            company_id: session.company_id,
+            vehicle_id: ctx.vehicle_id,
+            driver_id: session.user_id,
+            odometer_km: ctx.odometer_km,
+            status: "completada"
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Insertar items de checklist
+        await admin
+          .from("inspection_checklist_items")
+          .insert(checklist_items.map(i => ({ inspection_id: inspection.id, ...i })));
+
+        // Insertar fotos si existen
+        if (ctx.photos && ctx.photos.length > 0) {
+          const photoTypes = ["frente", "llantas", "motor", "caja_trasera", "odometro"];
+          const photos = ctx.photos.map((url, idx) => ({
+            inspection_id: inspection.id,
+            photo_type: photoTypes[idx] || "otro",
+            url
+          }));
+
+          await admin
+            .from("inspection_photos")
+            .insert(photos);
+        }
+
+        await telegramSender.send(
+          chatId,
+          `Inspeccion completada (${ctx.photos.length} fotos).\n\nInspecciona otra unidad? Escribe /start para volver al menu.`
+        );
+
+        await resetConversation(state.id, admin);
+      } catch (e) {
+        logger.error("telegram.inspection_create_error", { error: e.message });
+        await telegramSender.send(chatId, "Error al guardar inspeccion. Intenta de nuevo.");
+        await resetConversation(state.id, admin);
+      }
       return;
     }
 
-    ctx.checklist_answers = answers;
+    // Mostrar siguiente item del checklist
+    const nextItemIndex = ctx.checklist_answers.length;
+    ctx.checklist_item_index = nextItemIndex + 1;
+    await updateConversationState(state.id, "inspection", 3, ctx, admin);
 
-    // Crear inspección en la BD
-    try {
-      const checklist_items = [
-        "frenos", "luces", "llantas_desgaste", "niveles_fluidos", "fugas",
-        "espejos", "claxon", "extintor", "triangulos", "cinturon"
-      ].map((key, idx) => ({
-        item_key: key,
-        ok: answers[idx] === "S",
-        notes: ""
-      }));
-
-      const { data: inspection, error } = await admin
-        .from("inspections")
-        .insert({
-          company_id: session.company_id,
-          vehicle_id: ctx.vehicle_id,
-          driver_id: session.user_id,
-          odometer_km: ctx.odometer_km,
-          status: "completada"
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Insertar items de checklist
-      await admin
-        .from("inspection_checklist_items")
-        .insert(checklist_items.map(i => ({ inspection_id: inspection.id, ...i })));
-
-      // Insertar fotos si existen
-      if (ctx.photos && ctx.photos.length > 0) {
-        const photoTypes = ["frente", "llantas", "motor", "caja_trasera", "odometro"];
-        const photos = ctx.photos.map((url, idx) => ({
-          inspection_id: inspection.id,
-          photo_type: photoTypes[idx] || "otro",
-          url
-        }));
-
-        await admin
-          .from("inspection_photos")
-          .insert(photos);
-      }
-
-      await telegramSender.send(
-        chatId,
-        `Inspeccion completada (${ctx.photos.length} fotos).\n\nInspecciona otra unidad? Escribe /start para volver al menu.`
-      );
-
-      await resetConversation(state.id, admin);
-    } catch (e) {
-      logger.error("telegram.inspection_create_error", { error: e.message });
-      await telegramSender.send(chatId, "Error al guardar inspeccion. Intenta de nuevo.");
-      await resetConversation(state.id, admin);
-    }
+    await telegramSender.send(
+      chatId,
+      `${nextItemIndex + 1}/${checklist.length}: ${checklist[nextItemIndex]}`,
+      buttons
+    );
     return;
   }
 }
@@ -329,7 +386,7 @@ async function handleExpenseFlow(chatId, text, session, state, admin) {
   const step = state.current_step;
   const ctx = state.context || {};
 
-  // Paso 1: ID del viaje
+  // Paso 1: Seleccionar viaje con botones o typing
   if (step === 0) {
     const tripId = text.trim();
 
@@ -342,10 +399,34 @@ async function handleExpenseFlow(chatId, text, session, state, admin) {
       .single();
 
     if (error || !trip) {
+      // Si falla, mostrar viajes recientes como buttons
+      if (!ctx.showedTripsOnce) {
+        const { data: recentTrips } = await admin
+          .from("trips")
+          .select("id, origin, destination")
+          .eq("company_id", session.company_id)
+          .eq("status", "abierto")
+          .order("created_at", { ascending: false })
+          .limit(4);
+
+        if (recentTrips && recentTrips.length > 0) {
+          ctx.showedTripsOnce = true;
+          await updateConversationState(state.id, "expense", 0, ctx, admin);
+          const buttons = recentTrips.map(t => [`${t.origin} → ${t.destination}`]);
+          await telegramSender.send(
+            chatId,
+            "Selecciona un viaje abierto o escribe el ID:",
+            buttons
+          );
+          return;
+        }
+      }
+
       await telegramSender.send(
         chatId,
-        "ID de viaje no encontrado. Intenta de nuevo:"
+        "No hay viajes abiertos. Crea uno desde /start"
       );
+      await resetConversation(state.id, admin);
       return;
     }
 
@@ -357,20 +438,37 @@ async function handleExpenseFlow(chatId, text, session, state, admin) {
 
     ctx.trip_id = tripId;
     await updateConversationState(state.id, "expense", 1, ctx, admin);
-    await telegramSender.send(chatId, "Selecciona categoria: diesel, caseta, comida, taller, otro");
+
+    const buttons = [
+      ["⛽ Diesel", "🛣️ Caseta"],
+      ["🍔 Comida", "🔧 Taller"],
+      ["📦 Otro"]
+    ];
+    await telegramSender.send(chatId, "Elige la categoria del gasto:", buttons);
     return;
   }
 
-  // Paso 2: Categoría
+  // Paso 2: Categoría con botones
   if (step === 1) {
-    const category = text.trim().toLowerCase();
-    const validCategories = ["diesel", "caseta", "comida", "taller", "otro"];
+    const categoryMap = {
+      "⛽ Diesel": "diesel",
+      "🛣️ Caseta": "caseta",
+      "🍔 Comida": "comida",
+      "🔧 Taller": "taller",
+      "📦 Otro": "otro"
+    };
 
+    const categoryLabel = Object.keys(categoryMap).find(k => text === k);
+    const category = categoryLabel ? categoryMap[categoryLabel] : text.trim().toLowerCase();
+
+    const validCategories = ["diesel", "caseta", "comida", "taller", "otro"];
     if (!validCategories.includes(category)) {
-      await telegramSender.send(
-        chatId,
-        `Categoria invalida. Elige una: ${validCategories.join(", ")}`
-      );
+      const buttons = [
+        ["⛽ Diesel", "🛣️ Caseta"],
+        ["🍔 Comida", "🔧 Taller"],
+        ["📦 Otro"]
+      ];
+      await telegramSender.send(chatId, "Elige la categoria del gasto:", buttons);
       return;
     }
 

@@ -62,7 +62,7 @@ async function handleMessage(admin, message) {
 
     await admin.from("telegram_sessions").update({ last_activity_at: new Date().toISOString() }).eq("id", session.id);
 
-    const { data: convState } = await admin.from("telegram_conversation_state").select("*").eq("telegram_session_id", session.id).single();
+    const convState = await telegramConversation.getOrCreateConversationState(session.id, admin);
 
     if (convState && convState.flow_type !== "none") {
       await telegramConversation.handleConversationMessage(chatId, text, session, admin);
