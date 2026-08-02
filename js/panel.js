@@ -287,19 +287,19 @@ function renderDashboard() {
       <div><strong>Modo gratuito:</strong> puedes leer la primera lección de cada curso. Elige un plan para desbloquear cursos completos, exámenes y certificados:</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap">
         <button class="btn btn-primary" data-plan="esencial">Esencial · ${esc(CONFIG.PLANES.esencial.precio)}</button>
-        <button class="btn btn-green" data-plan="protegido" style="border:2px solid var(--amarillo)">Protegido · ${esc(CONFIG.PLANES.protegido.precio)} — incluye abogado por WhatsApp</button>
+        <button class="btn btn-green" data-plan="protegido" style="border:2px solid var(--amarillo)">Protegido · ${esc(CONFIG.PLANES.protegido.precio)} — incluye asesoría legal</button>
       </div>
     </div>`;
 
   const waCard = isProtegido() ? `
     <div class="card" style="margin-bottom:26px;background:var(--verde);color:#fff">
       <span class="badge" style="background:var(--amarillo);color:var(--asfalto)">⚖️</span>
-      <h3 style="color:#fff">Tu abogado, a un mensaje</h3>
+      <h3 style="color:#fff">Asesoría legal incluida</h3>
       <p style="color:#E4EFE9">Consulta laboral, de tránsito o de percances con un abogado real. Respuesta en menos de 24 horas hábiles. Hasta 3 consultas al mes incluidas en tu plan.</p>
-      <a class="btn btn-primary" target="_blank" rel="noopener" href="https://wa.me/${esc(CONFIG.WHATSAPP_ASESORIA)}?text=${encodeURIComponent("Hola, soy " + (state.profile?.full_name || "") + ", suscriptor Protegido de OperadorPro (ID " + (state.session?.user?.id || "").slice(0, 8) + "). Mi consulta: ")}">Consultar por WhatsApp</a>
+      <a class="btn btn-primary" href="#/perfil">Contactar abogado →</a>
     </div>` : isSubscribed() ? `
     <div class="locked-banner" style="margin-bottom:26px">
-      <div>⚖️ <strong>Asesoría legal por WhatsApp:</strong> el plan Protegido incluye consultas con un abogado real (laboral, tránsito, percances). Cambia de plan desde <a href="#/perfil" style="color:var(--amarillo)">tu perfil</a> → Administrar suscripción.</div>
+      <div>⚖️ <strong>Asesoría legal:</strong> el plan Protegido incluye consultas con un abogado real (laboral, tránsito, percances). Cambia de plan desde <a href="#/perfil" style="color:var(--amarillo)">tu perfil</a> → Administrar suscripción.</div>
     </div>` : "";
 
   const fleetCard = `
@@ -565,7 +565,7 @@ function renderPerfil() {
           <input id="pf-name" value="${esc(p.full_name)}">
         </div>
         <div>
-          <label for="pf-phone">Teléfono / WhatsApp</label>
+          <label for="pf-phone">Teléfono</label>
           <input id="pf-phone" value="${esc(p.phone || "")}" placeholder="10 dígitos">
         </div>
         <div>
@@ -950,7 +950,7 @@ async function renderFlota() {
       <div class="fleet-grid">${driverCards}</div>
       <div class="fleet-card">
         <label>Nombre completo</label><input id="dr-name">
-        <label>Teléfono (10 dígitos, para recibir avisos por WhatsApp)</label><input id="dr-phone" placeholder="5512345678">
+        <label>Teléfono (10 dígitos, para recibir avisos)</label><input id="dr-phone" placeholder="5512345678">
         <label>Número de licencia (opcional)</label><input id="dr-license">
         <label>Vencimiento de licencia (opcional)</label><input id="dr-license-exp" type="date">
         <div class="form-msg" id="dr-msg"></div>
