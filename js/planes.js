@@ -2,18 +2,6 @@
 // planes.js — Manejo de checkout en la página de planes
 // ============================================================
 
-function openCheckout(planType, btn) {
-  const email = prompt("Ingresa tu correo electrónico:", "");
-  if (!email) return;
-
-  if (!email.includes("@")) {
-    alert("Por favor ingresa un email válido");
-    return;
-  }
-
-  checkout(email, planType, btn);
-}
-
 async function checkout(email, plan, btn) {
   try {
     btn.disabled = true;
@@ -41,3 +29,22 @@ async function checkout(email, plan, btn) {
     btn.textContent = "Seleccionar plan";
   }
 }
+
+// Agregar event listeners a los botones de planes
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll("button[data-plan]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const planType = btn.getAttribute("data-plan");
+      const email = prompt("Ingresa tu correo electrónico:", "");
+      if (!email) return;
+
+      if (!email.includes("@")) {
+        alert("Por favor ingresa un email válido");
+        return;
+      }
+
+      checkout(email, planType, btn);
+    });
+  });
+});
