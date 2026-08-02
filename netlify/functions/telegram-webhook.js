@@ -101,7 +101,7 @@ async function handleMessage(admin, message) {
       return;
     }
 
-    if (text === "↩️ Menú Principal") {
+    if (text === "↩️ Menú Principal" || text === "↩️ Menu Principal") {
       await showMenu(chatId, session, admin);
       return;
     }

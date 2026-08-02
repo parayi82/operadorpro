@@ -224,6 +224,23 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
 
       // Crear inspección en la BD
       try {
+        // Obtener el driver_id del usuario
+        const { data: driver, error: driverError } = await admin
+          .from("drivers")
+          .select("id")
+          .eq("company_id", session.company_id)
+          .eq("user_id", session.user_id)
+          .single();
+
+        if (driverError || !driver) {
+          await telegramSender.send(
+            chatId,
+            "No encontramos tu perfil de chofer. Configura en la app web."
+          );
+          await resetConversation(state.id, admin);
+          return;
+        }
+
         const checklist_items = [
           "frenos", "luces", "llantas_desgaste", "niveles_fluidos", "fugas",
           "espejos", "claxon", "extintor", "triangulos", "cinturon"
@@ -238,9 +255,9 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
           .insert({
             company_id: session.company_id,
             vehicle_id: ctx.vehicle_id,
-            driver_id: session.user_id,
+            driver_id: driver.id,
             odometer_km: ctx.odometer_km,
-            status: "completada"
+            status: "pendiente"
           })
           .select()
           .single();
@@ -356,7 +373,7 @@ async function handleTripFlow(chatId, text, session, state, admin) {
         .from("trips")
         .insert({
           company_id: session.company_id,
-          vehicle_id: vehicles.id,
+          vehicle_id: vehicle.id,
           driver_id: driver.id,
           origin: ctx.origin,
           destination: ctx.destination,
