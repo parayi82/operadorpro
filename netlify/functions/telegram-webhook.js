@@ -145,7 +145,9 @@ async function handlePhotoMessage(admin, telegramUserId, chatId, photos) {
       ctx.photos = ctx.photos || [];
       ctx.photos.push(photoUrl);
       await telegramConversation.updateConversationState(convState.id, "inspection", convState.current_step, ctx, admin);
-      await telegramSender.send(chatId, `Foto registrada. Envía ${5 - ctx.photos.length} más o escribe "listo"`);
+      const remaining = Math.max(0, 5 - ctx.photos.length);
+      const buttons = [["✅ Listo"], ["⏭️ Sin fotos"]];
+      await telegramSender.send(chatId, `Foto registrada (${ctx.photos.length}/5).\n\n${remaining > 0 ? `Envía ${remaining} más:` : "¡Listo! Continúa:"}`, buttons);
     } else if (convState.flow_type === "expense") {
       const photoUrl = await telegramPhotoHandler.processPhotoForExpense(fileId, chatId, session, admin);
       const ctx = convState.context || {};
