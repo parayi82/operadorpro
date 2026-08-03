@@ -63,7 +63,6 @@ exports.handler = async (event) => {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
-      customer_email: emailLower, // Para poder identificar luego si no está vinculado
       line_items: [{ price: priceId, quantity: 1 }],
       metadata: {
         plan,
