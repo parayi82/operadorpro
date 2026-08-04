@@ -136,8 +136,8 @@ echo ""
 echo -e "${BLUE}✓ Checking content...${NC}"
 
 # Verificar que legal-website tiene contenido completo
-if grep -q "Privacy Policy" "legal-website.html" && \
-   grep -q "Terms of Service" "legal-website.html" && \
+if grep -q "Política de Privacidad\|Privacy Policy" "legal-website.html" && \
+   grep -q "Términos de Servicio\|Terms of Service" "legal-website.html" && \
    grep -q "Contacto" "legal-website.html"; then
     echo -e "${GREEN}✓${NC} legal-website.html has complete content"
 else
