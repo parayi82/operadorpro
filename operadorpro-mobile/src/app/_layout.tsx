@@ -4,6 +4,11 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { ThemeProvider, DefaultTheme } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { supabase } from '@/utils/supabase';
+import {
+  registerForPushNotifications,
+  savePushToken,
+  setupNotificationListeners,
+} from '@/utils/notifications';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -12,6 +17,21 @@ export default function RootLayout() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const segments = useSegments();
+
+  // Configurar notificaciones push
+  useEffect(() => {
+    async function setupNotifications() {
+      const token = await registerForPushNotifications();
+      if (token && session?.user?.id) {
+        await savePushToken(session.user.id, token);
+      }
+      setupNotificationListeners();
+    }
+
+    if (session?.user?.id) {
+      setupNotifications();
+    }
+  }, [session?.user?.id]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
