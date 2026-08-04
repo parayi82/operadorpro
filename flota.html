@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flota - OperadorPro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .units-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .unit-card {
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      padding: 1.5rem;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+
+    .unit-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border-color: #d4a574;
+    }
+
+    .unit-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 1rem;
+    }
+
+    .unit-name {
+      font-weight: bold;
+      font-size: 1.2rem;
+      color: #333;
+    }
+
+    .unit-placa {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #d4a574;
+      font-family: monospace;
+      letter-spacing: 2px;
+      margin-top: 0.5rem;
+    }
+
+    .active-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      background: #d1e7dd;
+      color: #0f5132;
+    }
+
+    .inactive-badge {
+      background: #f8d7da;
+      color: #842029;
+    }
+
+    .unit-meta {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 1rem;
+    }
+
+    .unit-meta-item {
+      margin-bottom: 0.5rem;
+    }
+
+    .documents-section {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #ddd;
+    }
+
+    .documents-title {
+      font-weight: bold;
+      font-size: 0.9rem;
+      color: #333;
+      margin-bottom: 0.5rem;
+    }
+
+    .document-badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    .doc-ok {
+      background: #d1e7dd;
+      color: #0f5132;
+    }
+
+    .doc-warning {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .doc-critical {
+      background: #f8d7da;
+      color: #842029;
+    }
+
+    .unit-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-small {
+      padding: 0.5rem 0.75rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.3s;
+    }
+
+    .btn-primary-small {
+      background: #d4a574;
+      color: white;
+    }
+
+    .btn-primary-small:hover {
+      background: #c09460;
+    }
+
+    .btn-secondary-small {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-secondary-small:hover {
+      background: #e0e0e0;
+    }
+
+    .form-section {
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+
+    .form-section h3 {
+      margin-top: 0;
+      color: #333;
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group label {
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: #333;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .documents-list {
+      display: grid;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .document-item {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 1rem;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .document-item-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .document-item-info strong {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .document-item-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 1rem;
+      border-bottom: 2px solid #ddd;
+      margin-bottom: 2rem;
+    }
+
+    .tab-btn {
+      padding: 0.75rem 1.5rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      color: #666;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+
+    .tab-btn.active {
+      color: #d4a574;
+      border-bottom-color: #d4a574;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .alert-box {
+      background: #ffe8e8;
+      border: 1px solid #ffcccc;
+      border-radius: 4px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .alert-title {
+      font-weight: bold;
+      color: #c00;
+      margin-bottom: 0.5rem;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #666;
+    }
+
+    .error {
+      background: #ffe8e8;
+      color: #c00;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+
+    .success {
+      background: #e8f8f0;
+      color: #060;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <div class="header-title">
+        <h1>🚚 Mi Flota</h1>
+        <p>Gestiona tus unidades y documenta vencimientos</p>
+      </div>
+      <button onclick="logout()" class="btn-logout">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <nav class="nav-bottom">
+    <a href="app.html">📊 Panel</a>
+    <a href="carta-porte.html">📋 Carta Porte</a>
+    <a href="inspeccion.html">✅ Inspección</a>
+    <a href="cobranza.html">💰 Cobranza</a>
+    <a href="flota.html" class="active">🚚 Flota</a>
+  </nav>
+
+  <div class="container">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('lista')">Mis Unidades</button>
+      <button class="tab-btn" onclick="switchTab('crear')">+ Nueva Unidad</button>
+    </div>
+
+    <!-- Tab: Lista de Unidades -->
+    <div id="tab-lista" class="tab-content active">
+      <div id="message-container"></div>
+
+      <!-- Alertas de Vencimiento -->
+      <div id="expiring-alerts"></div>
+
+      <div id="loading" class="loading" style="display:none">Cargando unidades...</div>
+      <div id="units-grid" class="units-grid"></div>
+    </div>
+
+    <!-- Tab: Crear Unidad -->
+    <div id="tab-crear" class="tab-content">
+      <div id="form-message-container"></div>
+
+      <form id="unitForm">
+        <!-- Información Básica -->
+        <div class="form-section">
+          <h3>Información de la Unidad</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Nombre/Alias (ej: Torton 01) *</label>
+              <input type="text" id="name" name="name" placeholder="Nombre descriptivo" required>
+            </div>
+            <div class="form-group">
+              <label>Placa (ej: XYZ-123-AB) *</label>
+              <input type="text" id="placa" name="placa" placeholder="Placa del vehículo" required>
+            </div>
+            <div class="form-group">
+              <label>Configuración Vehicular</label>
+              <select id="config_vehicular" name="config_vehicular">
+                <option value="">-- Seleccionar --</option>
+                <option value="C3">C3 (Torton)</option>
+                <option value="T3S2">T3S2 (Trailer 3 ejes)</option>
+                <option value="T3S3">T3S3 (Trailer pesado)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Año Modelo</label>
+              <input type="number" id="anio_modelo" name="anio_modelo" placeholder="2020">
+            </div>
+            <div class="form-group">
+              <label>VIN (Número de Chasis)</label>
+              <input type="text" id="vin" name="vin" placeholder="Número de identificación del vehículo">
+            </div>
+            <div class="form-group">
+              <label>Notas</label>
+              <textarea id="notes" name="notes" placeholder="Información adicional..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botones -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+          <button type="submit" class="btn btn-primary">💾 Crear Unidad</button>
+          <button type="reset" class="btn btn-secondary">Limpiar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal para Documentos -->
+  <div id="documentsModal" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+    <div style="background: white; margin: auto; max-width: 800px; width: 90%; margin-top: 2rem; margin-bottom: 2rem; border-radius: 8px; padding: 2rem;">
+      <button onclick="closeDocumentsModal()" style="float: right; border: none; background: none; font-size: 1.5rem; cursor: pointer;">✕</button>
+      <h2 id="modal-title">Documentos de Unidad</h2>
+
+      <div id="documents-content"></div>
+
+      <!-- Agregar Documento -->
+      <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #ddd;">
+        <h3>Agregar Documento</h3>
+        <form id="documentForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Tipo de Documento *</label>
+              <select id="doc_type" required>
+                <option value="">-- Seleccionar --</option>
+                <option value="seguro_resp_civil">Seguro Responsabilidad Civil</option>
+                <option value="permiso_sict">Permiso SICT</option>
+                <option value="verificacion_tecnica">Verificación Técnica</option>
+                <option value="licencia_federal">Licencia Federal</option>
+                <option value="poliza_transporte">Póliza de Transporte</option>
+                <option value="constancia_no_deuda">Constancia de No Deuda</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Número de Documento</label>
+              <input type="text" id="doc_number" placeholder="Número o folio">
+            </div>
+            <div class="form-group">
+              <label>Emisor (Aseguradora, SAT, etc.)</label>
+              <input type="text" id="doc_issuer" placeholder="Entidad emisora">
+            </div>
+            <div class="form-group">
+              <label>Fecha de Vencimiento *</label>
+              <input type="date" id="doc_expires_at" required>
+            </div>
+          </div>
+          <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+            <button type="submit" class="btn btn-primary">Agregar Documento</button>
+            <button type="button" class="btn btn-secondary" onclick="closeDocumentsModal()">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/flota.js"></script>
+</body>
+</html>
