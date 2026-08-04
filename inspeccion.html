@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inspección Pre-Viaje - OperadorPro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .inspection-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .progress-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .progress-step {
+      flex: 1;
+      height: 4px;
+      background: #e0e0e0;
+      border-radius: 2px;
+      transition: background 0.3s;
+    }
+
+    .progress-step.active {
+      background: #d4a574;
+    }
+
+    .progress-step.completed {
+      background: #2d7a2d;
+    }
+
+    .checklist-item {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      transition: all 0.3s;
+    }
+
+    .checklist-item.fail {
+      border-color: #e74c3c;
+      background: #ffe8e8;
+    }
+
+    .checklist-item.ok {
+      border-color: #27ae60;
+      background: #e8f8f0;
+    }
+
+    .checklist-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .checklist-category {
+      display: inline-block;
+      background: #d4a574;
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+
+    .checklist-label {
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin: 0.5rem 0;
+    }
+
+    .status-buttons {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .status-btn {
+      flex: 1;
+      padding: 0.75rem;
+      border: 2px solid #ddd;
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .status-btn.ok {
+      border-color: #27ae60;
+      background: #e8f8f0;
+      color: #27ae60;
+    }
+
+    .status-btn.fail {
+      border-color: #e74c3c;
+      background: #ffe8e8;
+      color: #e74c3c;
+    }
+
+    .status-btn.na {
+      border-color: #95a5a6;
+      background: #ecf0f1;
+      color: #7f8c8d;
+    }
+
+    .photo-section {
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .photo-section.active {
+      display: block;
+    }
+
+    .photo-section h4 {
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    .photo-input {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .photo-input input[type="file"] {
+      flex: 1;
+    }
+
+    .photo-preview {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+    }
+
+    .notes-input {
+      width: 100%;
+      min-height: 60px;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    .signature-section {
+      background: white;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .signature-canvas {
+      width: 100%;
+      height: 150px;
+      border: 1px solid #ddd;
+      cursor: crosshair;
+      display: block;
+      background: white;
+      margin-bottom: 0.5rem;
+    }
+
+    .signature-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .signature-buttons button {
+      flex: 1;
+    }
+
+    .location-info {
+      background: #e8f4f8;
+      border: 1px solid #b3d9e8;
+      border-radius: 4px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .location-status {
+      color: #0066cc;
+    }
+
+    .location-status.error {
+      color: #e74c3c;
+    }
+
+    .step-container {
+      display: none;
+    }
+
+    .step-container.active {
+      display: block;
+    }
+
+    .step-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+      justify-content: space-between;
+    }
+
+    .inspection-summary {
+      background: #f9f9f9;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .summary-stat {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 1rem;
+      background: white;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+
+    .stat-number {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #d4a574;
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: #666;
+      margin-top: 0.5rem;
+    }
+
+    .inspection-list {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .inspection-card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1.5rem;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .inspection-card:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-color: #d4a574;
+    }
+
+    .inspection-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+
+    .status-in_progress {
+      background: #f0f0f0;
+      color: #666;
+    }
+
+    .status-completed {
+      background: #e8f8f0;
+      color: #27ae60;
+    }
+
+    .status-failed {
+      background: #ffe8e8;
+      color: #e74c3c;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #666;
+    }
+
+    .error {
+      background: #ffe8e8;
+      color: #c00;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+
+    .success {
+      background: #e8f8f0;
+      color: #060;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <div class="header-title">
+        <h1>✅ Inspección Pre-Viaje</h1>
+        <p>Checklist de seguridad y condiciones del vehículo</p>
+      </div>
+      <button onclick="logout()" class="btn-logout">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <nav class="nav-bottom">
+    <a href="app.html">📊 Panel</a>
+    <a href="carta-porte.html">📋 Carta Porte</a>
+    <a href="inspeccion.html" class="active">✅ Inspección</a>
+    <a href="flota.html">🚚 Flota</a>
+    <a href="settings.html">⚙️ Configuración</a>
+  </nav>
+
+  <div class="inspection-container">
+    <!-- Tabs -->
+    <div style="display: flex; gap: 1rem; border-bottom: 2px solid #ddd; margin-bottom: 2rem;">
+      <button class="tab-btn active" onclick="switchTab('lista')" style="padding: 0.75rem 1.5rem; background: none; border: none; cursor: pointer; font-size: 1rem; color: #666; border-bottom: 3px solid transparent; transition: all 0.3s; position: relative; top: 2px;">Mis Inspecciones</button>
+      <button class="tab-btn" onclick="switchTab('crear')" style="padding: 0.75rem 1.5rem; background: none; border: none; cursor: pointer; font-size: 1rem; color: #666; border-bottom: 3px solid transparent; transition: all 0.3s; position: relative; top: 2px;">+ Nueva Inspección</button>
+    </div>
+
+    <!-- Tab: Lista -->
+    <div id="tab-lista" style="display: block;">
+      <div id="message-container"></div>
+      <div id="loading" class="loading" style="display:none">Cargando inspecciones...</div>
+      <div id="inspection-list" class="inspection-list"></div>
+    </div>
+
+    <!-- Tab: Crear -->
+    <div id="tab-crear" style="display: none;">
+      <div id="form-message-container"></div>
+
+      <!-- Selección de Unidad -->
+      <div id="step-select-unit" class="step-container active">
+        <h2>Paso 1: Seleccionar Unidad</h2>
+        <div style="margin-bottom: 2rem;">
+          <label style="display: block; font-weight: 600; margin-bottom: 1rem;">¿Cuál unidad vas a inspeccionar?</label>
+          <select id="unit_id" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
+            <option value="">-- Cargando unidades --</option>
+          </select>
+        </div>
+        <div class="step-buttons">
+          <button type="button" class="btn btn-primary" onclick="startInspection()">Comenzar Inspección →</button>
+        </div>
+      </div>
+
+      <!-- Checklist -->
+      <div id="step-checklist" class="step-container">
+        <div class="progress-bar" id="progress-bar"></div>
+
+        <h2 id="checklist-title">Inspección Pre-Viaje</h2>
+
+        <div class="location-info">
+          <span id="location-status" class="location-status">📍 Obteniendo ubicación...</span>
+        </div>
+
+        <div id="checklist-items"></div>
+
+        <div class="step-buttons">
+          <button type="button" class="btn btn-secondary" onclick="goBack()">← Atrás</button>
+          <button type="button" class="btn btn-primary" onclick="goToSignature()">Siguiente: Firma →</button>
+        </div>
+      </div>
+
+      <!-- Firma -->
+      <div id="step-signature" class="step-container">
+        <h2>Paso 3: Firma del Operador</h2>
+
+        <div class="signature-section">
+          <label style="display: block; margin-bottom: 1rem; font-weight: 600;">Firma en el área de abajo:</label>
+          <canvas id="signature-canvas" class="signature-canvas"></canvas>
+          <div class="signature-buttons">
+            <button type="button" class="btn btn-secondary" onclick="clearSignature()">🗑️ Limpiar</button>
+            <button type="button" class="btn btn-primary" onclick="goToSummary()">Revisar →</button>
+          </div>
+        </div>
+
+        <div class="step-buttons">
+          <button type="button" class="btn btn-secondary" onclick="goBack()">← Atrás</button>
+        </div>
+      </div>
+
+      <!-- Resumen y Envío -->
+      <div id="step-summary" class="step-container">
+        <h2>Paso 4: Revisar y Completar</h2>
+
+        <div class="inspection-summary">
+          <div class="summary-stat">
+            <div class="stat-item">
+              <div class="stat-number" id="stat-ok">0</div>
+              <div class="stat-label">OK</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number" id="stat-fail">0</div>
+              <div class="stat-label">Fallas</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number" id="stat-na">0</div>
+              <div class="stat-label">N/A</div>
+            </div>
+          </div>
+
+          <div style="margin-top: 1rem;">
+            <strong>Status de Inspección:</strong>
+            <div id="inspection-status-summary" style="margin-top: 0.5rem; font-size: 1.1rem; font-weight: bold;"></div>
+          </div>
+        </div>
+
+        <div class="step-buttons">
+          <button type="button" class="btn btn-secondary" onclick="goBack()">← Atrás</button>
+          <button type="button" class="btn btn-primary" onclick="submitInspection()" style="background: #27ae60;">✅ Completar Inspección</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para ver detalle de inspección -->
+  <div id="detailModal" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+    <div style="background: white; margin: auto; max-width: 800px; width: 90%; margin-top: 2rem; margin-bottom: 2rem; border-radius: 8px; padding: 2rem;">
+      <button onclick="closeDetailModal()" style="float: right; border: none; background: none; font-size: 1.5rem; cursor: pointer;">✕</button>
+      <div id="detail-content"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/inspeccion.js"></script>
+</body>
+</html>
