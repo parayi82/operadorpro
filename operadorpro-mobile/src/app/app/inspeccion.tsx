@@ -9,9 +9,11 @@ import {
   Alert,
   FlatList,
   Switch,
+  Image,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { supabase } from '@/utils/supabase';
+import { takePhoto, uploadPhotoToSupabase, getPhotoUrl } from '@/utils/camera';
 
 const CHECKLIST_ITEMS = [
   '🛞 Llantas sin daño',
@@ -33,13 +35,30 @@ interface Inspection {
   created_at: string;
 }
 
+interface ChecklistItem {
+  name: string;
+  status: 'ok' | 'not_ok' | null; // null = not checked
+  photoUri?: string;
+  photoPath?: string; // path en Supabase
+}
+
 export default function InspeccionScreen() {
   const [tab, setTab] = useState<'list' | 'create'>('list');
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [loading, setLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
+  const [photoLoading, setPhotoLoading] = useState(false);
   const [location, setLocation] = useState<any>(null);
-  const [checklist, setChecklist] = useState<Record<string, boolean>>({});
+  const [checklist, setChecklist] = useState<Record<string, ChecklistItem>>({});
+
+  // Inicializar checklist
+  useEffect(() => {
+    const initialChecklist: Record<string, ChecklistItem> = {};
+    CHECKLIST_ITEMS.forEach(item => {
+      initialChecklist[item] = { name: item, status: null };
+    });
+    setChecklist(initialChecklist);
+  }, []);
 
   useEffect(() => {
     loadInspections();
@@ -76,11 +95,33 @@ export default function InspeccionScreen() {
     }
   }
 
-  async function handleSubmitInspection() {
-    const completed = Object.values(checklist).filter(Boolean).length;
-    const total = CHECKLIST_ITEMS.length;
+  async function handleTakePhoto(itemName: string) {
+    setPhotoLoading(true);
+    try {
+      const photo = await takePhoto();
+      if (!photo) {
+        setPhotoLoading(false);
+        return;
+      }
 
-    if (completed === 0) {
+      setChecklist(prev => ({
+        ...prev,
+        [itemName]: { ...prev[itemName], photoUri: photo.uri },
+      }));
+
+      // Subir a Supabase cuando se guarde la inspección
+      setPhotoLoading(false);
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+      setPhotoLoading(false);
+    }
+  }
+
+  async function handleSubmitInspection() {
+    const items = Object.values(checklist);
+    const checked = items.filter(i => i.status !== null);
+
+    if (checked.length === 0) {
       Alert.alert('Error', 'Completa al menos un ítem del checklist');
       return;
     }
@@ -90,12 +131,38 @@ export default function InspeccionScreen() {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
+      // Subir fotos a Supabase Storage
+      const inspectionId = Date.now().toString();
+      const checklistWithPhotos: Record<string, ChecklistItem> = {};
+
+      for (const [itemName, item] of Object.entries(checklist)) {
+        if (item.photoUri) {
+          try {
+            const photoPath = await uploadPhotoToSupabase(
+              user.user.id,
+              inspectionId,
+              itemName,
+              { uri: item.photoUri, type: 'image/jpeg' }
+            );
+            checklistWithPhotos[itemName] = { ...item, photoPath };
+          } catch (err) {
+            console.error('Error uploading photo for', itemName, err);
+            checklistWithPhotos[itemName] = item;
+          }
+        } else {
+          checklistWithPhotos[itemName] = item;
+        }
+      }
+
+      const totalOK = items.filter(i => i.status === 'ok').length;
+      const totalItems = items.filter(i => i.status !== null).length;
+
       const { error } = await supabase.from('inspections').insert([
         {
           user_id: user.user.id,
           unit_id: null,
-          status: completed === total ? 'completed' : 'pending',
-          checklist,
+          status: totalOK === totalItems ? 'completed' : 'failed',
+          checklist: checklistWithPhotos,
           location,
         },
       ]);
@@ -105,9 +172,13 @@ export default function InspeccionScreen() {
       } else {
         Alert.alert(
           'Éxito',
-          `Inspección registrada: ${completed}/${total} ítems completados`
+          `Inspección guardada: ${totalOK}/${totalItems} ítems OK`
         );
-        setChecklist({});
+        const initialChecklist: Record<string, ChecklistItem> = {};
+        CHECKLIST_ITEMS.forEach(item => {
+          initialChecklist[item] = { name: item, status: null };
+        });
+        setChecklist(initialChecklist);
         setTab('list');
         loadInspections();
       }
@@ -142,30 +213,90 @@ export default function InspeccionScreen() {
         <Text style={styles.sectionTitle}>Checklist de Inspección</Text>
 
         <View style={styles.checklistContainer}>
-          {CHECKLIST_ITEMS.map((item, idx) => (
-            <View key={idx} style={styles.checklistItem}>
-              <Text style={styles.checklistLabel}>{item}</Text>
-              <Switch
-                value={checklist[item] || false}
-                onValueChange={(val) =>
-                  setChecklist({ ...checklist, [item]: val })
-                }
-                trackColor={{ false: '#ddd', true: '#d4a574' }}
-              />
-            </View>
-          ))}
+          {CHECKLIST_ITEMS.map((item, idx) => {
+            const itemData = checklist[item];
+            const isOK = itemData?.status === 'ok';
+            const isNotOK = itemData?.status === 'not_ok';
+
+            return (
+              <View key={idx} style={styles.checklistItem}>
+                <View style={styles.checklistItemContent}>
+                  <Text style={styles.checklistLabel}>{item}</Text>
+
+                  <View style={styles.checklistButtons}>
+                    <TouchableOpacity
+                      style={[
+                        styles.statusBtn,
+                        isOK && styles.statusBtnOK,
+                      ]}
+                      onPress={() =>
+                        setChecklist(prev => ({
+                          ...prev,
+                          [item]: { ...prev[item], status: 'ok' },
+                        }))
+                      }
+                    >
+                      <Text style={[styles.statusBtnText, isOK && styles.statusBtnTextActive]}>
+                        ✅ OK
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.statusBtn,
+                        isNotOK && styles.statusBtnNotOK,
+                      ]}
+                      onPress={() =>
+                        setChecklist(prev => ({
+                          ...prev,
+                          [item]: { ...prev[item], status: 'not_ok' },
+                        }))
+                      }
+                    >
+                      <Text style={[styles.statusBtnText, isNotOK && styles.statusBtnTextActive]}>
+                        ❌ NO OK
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {isNotOK && (
+                    <TouchableOpacity
+                      style={styles.photoBtn}
+                      onPress={() => handleTakePhoto(item)}
+                      disabled={photoLoading}
+                    >
+                      {photoLoading ? (
+                        <ActivityIndicator size="small" color="white" />
+                      ) : (
+                        <Text style={styles.photoBtnText}>
+                          {itemData?.photoUri ? '📸 Foto Capturada' : '📸 Capturar Foto'}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
+
+                  {itemData?.photoUri && (
+                    <Image
+                      source={{ uri: itemData.photoUri }}
+                      style={styles.photoPreview}
+                    />
+                  )}
+                </View>
+              </View>
+            );
+          })}
         </View>
 
         <TouchableOpacity
-          style={[styles.button, formLoading && styles.buttonDisabled]}
+          style={[styles.button, (formLoading || photoLoading) && styles.buttonDisabled]}
           onPress={handleSubmitInspection}
-          disabled={formLoading}
+          disabled={formLoading || photoLoading}
         >
-          {formLoading ? (
+          {formLoading || photoLoading ? (
             <ActivityIndicator color="white" />
           ) : (
             <Text style={styles.buttonText}>
-              Guardar Inspección ({Object.values(checklist).filter(Boolean).length}/
+              Guardar Inspección ({Object.values(checklist).filter(i => i.status !== null).length}/
               {CHECKLIST_ITEMS.length})
             </Text>
           )}
@@ -297,9 +428,6 @@ const styles = StyleSheet.create({
   },
   checklistContainer: { paddingHorizontal: 16, paddingBottom: 16 },
   checklistItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     backgroundColor: 'white',
     padding: 12,
     marginBottom: 8,
@@ -307,7 +435,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
   },
-  checklistLabel: { fontSize: 14, color: '#333', flex: 1 },
+  checklistItemContent: { gap: 10 },
+  checklistLabel: { fontSize: 14, color: '#333', fontWeight: '600' },
+  checklistButtons: { flexDirection: 'row', gap: 8 },
+  statusBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    alignItems: 'center',
+  },
+  statusBtnOK: { borderColor: '#27ae60', backgroundColor: '#f0f9f6' },
+  statusBtnNotOK: { borderColor: '#e74c3c', backgroundColor: '#ffe8e8' },
+  statusBtnText: { fontSize: 12, fontWeight: '600', color: '#666' },
+  statusBtnTextActive: { color: 'white' },
+  photoBtn: {
+    backgroundColor: '#0066cc',
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  photoBtnText: { color: 'white', fontSize: 12, fontWeight: '600' },
+  photoPreview: { width: '100%', height: 150, borderRadius: 6, marginTop: 8 },
   button: {
     margin: 16,
     backgroundColor: '#d4a574',
