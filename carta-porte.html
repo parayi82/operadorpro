@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carta Porte 3.1 - OperadorPro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .tabs {
+      display: flex;
+      gap: 1rem;
+      border-bottom: 2px solid #ddd;
+      margin-bottom: 2rem;
+    }
+    .tab-btn {
+      padding: 0.75rem 1.5rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      color: #666;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+    .tab-btn.active {
+      color: #d4a574;
+      border-bottom-color: #d4a574;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .carta-list {
+      display: grid;
+      gap: 1rem;
+    }
+    .carta-card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1.5rem;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .carta-card:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-color: #d4a574;
+    }
+    .carta-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 1rem;
+    }
+    .carta-folio {
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+    .status-draft { background: #f0f0f0; color: #666; }
+    .status-ready { background: #d4f1d4; color: #2d7a2d; }
+    .status-stamped { background: #d4edff; color: #0066cc; }
+    .carta-card-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 1rem;
+    }
+    .carta-card-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .btn-small {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.3s;
+    }
+    .btn-primary-small {
+      background: #d4a574;
+      color: white;
+    }
+    .btn-primary-small:hover {
+      background: #c09460;
+    }
+    .btn-secondary-small {
+      background: #f0f0f0;
+      color: #333;
+    }
+    .btn-secondary-small:hover {
+      background: #e0e0e0;
+    }
+    .form-section {
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+    .form-section h3 {
+      margin-top: 0;
+      color: #333;
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    .form-group label {
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: #333;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    .mercancias-container {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+    .mercancia-item {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr auto;
+      gap: 0.5rem;
+      align-items: end;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #eee;
+    }
+    .mercancia-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #666;
+    }
+    .error {
+      background: #ffe0e0;
+      color: #c00;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+    .success {
+      background: #e0ffe0;
+      color: #060;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <div class="header-title">
+        <h1>📋 Carta Porte 3.1</h1>
+        <p>Crea y gestiona tus cartas porte</p>
+      </div>
+      <button onclick="logout()" class="btn-logout">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <nav class="nav-bottom">
+    <a href="app.html">📊 Panel</a>
+    <a href="carta-porte.html" class="active">📋 Carta Porte</a>
+    <a href="flota.html">🚚 Flota</a>
+    <a href="settings.html">⚙️ Configuración</a>
+  </nav>
+
+  <div class="container">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('lista')">Mis Cartas Porte</button>
+      <button class="tab-btn" onclick="switchTab('crear')">+ Nueva Carta Porte</button>
+    </div>
+
+    <!-- Tab: Lista -->
+    <div id="tab-lista" class="tab-content active">
+      <div id="message-container"></div>
+      <div id="loading" class="loading" style="display:none">Cargando cartas porte...</div>
+      <div id="carta-list" class="carta-list"></div>
+    </div>
+
+    <!-- Tab: Crear/Editar -->
+    <div id="tab-crear" class="tab-content">
+      <div id="form-message-container"></div>
+
+      <form id="cartaForm">
+        <!-- Información básica -->
+        <div class="form-section">
+          <h3>Información Básica</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Cliente (destinatario)</label>
+              <select id="client_id" name="client_id">
+                <option value="">-- Seleccionar o crear cliente --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Observaciones</label>
+              <textarea id="observaciones" name="observaciones" placeholder="Notas adicionales..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Origen -->
+        <div class="form-section">
+          <h3>📍 Origen (De dónde se carga)</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>RFC</label>
+              <input type="text" id="origen_rfc" name="origen_rfc" placeholder="AAA000000AA0">
+            </div>
+            <div class="form-group">
+              <label>Nombre/Razón Social</label>
+              <input type="text" id="origen_nombre" name="origen_nombre" placeholder="Ej: Distribuidora XYZ">
+            </div>
+            <div class="form-group">
+              <label>Domicilio</label>
+              <input type="text" id="origen_domicilio" name="origen_domicilio" placeholder="Calle, número, ciudad">
+            </div>
+            <div class="form-group">
+              <label>Fecha y Hora de Carga</label>
+              <input type="datetime-local" id="origen_fecha_hora" name="origen_fecha_hora">
+            </div>
+          </div>
+        </div>
+
+        <!-- Destino -->
+        <div class="form-section">
+          <h3>📍 Destino (A dónde va)</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>RFC</label>
+              <input type="text" id="destino_rfc" name="destino_rfc" placeholder="AAA000000AA0">
+            </div>
+            <div class="form-group">
+              <label>Nombre/Razón Social</label>
+              <input type="text" id="destino_nombre" name="destino_nombre" placeholder="Ej: Cliente Final">
+            </div>
+            <div class="form-group">
+              <label>Domicilio</label>
+              <input type="text" id="destino_domicilio" name="destino_domicilio" placeholder="Calle, número, ciudad">
+            </div>
+            <div class="form-group">
+              <label>Fecha y Hora Estimada de Llegada</label>
+              <input type="datetime-local" id="destino_fecha_hora" name="destino_fecha_hora">
+            </div>
+          </div>
+        </div>
+
+        <!-- Mercancías -->
+        <div class="form-section">
+          <h3>📦 Mercancías</h3>
+          <div class="mercancias-container">
+            <div id="mercancias-list"></div>
+            <button type="button" class="btn btn-secondary" onclick="addMercancia()">+ Agregar Mercancía</button>
+          </div>
+        </div>
+
+        <!-- Vehículo -->
+        <div class="form-section">
+          <h3>🚚 Vehículo</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Placa</label>
+              <input type="text" id="placa_vm" name="placa_vm" placeholder="XYZ-123-AB">
+            </div>
+            <div class="form-group">
+              <label>Año Modelo</label>
+              <input type="number" id="anio_modelo_vm" name="anio_modelo_vm" placeholder="2020">
+            </div>
+            <div class="form-group">
+              <label>Permiso SICT</label>
+              <input type="text" id="permiso_sict" name="permiso_sict" placeholder="Número de permiso">
+            </div>
+            <div class="form-group">
+              <label>Config. Vehicular</label>
+              <select id="config_vehicular" name="config_vehicular">
+                <option value="">-- Seleccionar --</option>
+                <option value="C3">C3 (Torton)</option>
+                <option value="T3S2">T3S2 (Trailer 3 ejes)</option>
+                <option value="T3S3">T3S3 (Trailer pesado)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Aseguradora Responsabilidad Civil</label>
+              <input type="text" id="asegura_resp_civil" name="asegura_resp_civil" placeholder="Ej: Seguros XYZ">
+            </div>
+            <div class="form-group">
+              <label>Póliza Responsabilidad Civil</label>
+              <input type="text" id="poliza_resp_civil" name="poliza_resp_civil" placeholder="Número de póliza">
+            </div>
+          </div>
+        </div>
+
+        <!-- Operador -->
+        <div class="form-section">
+          <h3>👤 Operador</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>RFC</label>
+              <input type="text" id="operador_rfc" name="operador_rfc" placeholder="AAA000000AA0">
+            </div>
+            <div class="form-group">
+              <label>Nombre</label>
+              <input type="text" id="operador_nombre" name="operador_nombre" placeholder="Nombre del chofer">
+            </div>
+            <div class="form-group">
+              <label>Licencia de Conducir</label>
+              <input type="text" id="operador_licencia" name="operador_licencia" placeholder="Número de licencia">
+            </div>
+            <div class="form-group">
+              <label>Residencia (Estado)</label>
+              <select id="operador_residencia" name="operador_residencia">
+                <option value="">-- Seleccionar estado --</option>
+                <option value="BC">Baja California</option>
+                <option value="CDMX">CDMX</option>
+                <option value="EDOMEX">Estado de México</option>
+                <option value="GDL">Jalisco (Guadalajara)</option>
+                <option value="MTY">Nuevo León (Monterrey)</option>
+                <option value="MX">Resto de México</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botones -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+          <button type="submit" class="btn btn-primary">💾 Guardar Carta Porte</button>
+          <button type="reset" class="btn btn-secondary">Limpiar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal para crear cliente rápido -->
+  <div id="clientModal" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 500px; width: 90%;">
+      <h3>Crear Cliente</h3>
+      <form id="clientForm">
+        <div class="form-group">
+          <label>Nombre</label>
+          <input type="text" id="newClientName" required>
+        </div>
+        <div class="form-group">
+          <label>RFC</label>
+          <input type="text" id="newClientRfc">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="newClientEmail">
+        </div>
+        <div class="form-group">
+          <label>Teléfono</label>
+          <input type="tel" id="newClientPhone">
+        </div>
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+          <button type="submit" class="btn btn-primary">Crear</button>
+          <button type="button" class="btn btn-secondary" onclick="closeClientModal()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/carta-porte.js"></script>
+</body>
+</html>
