@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cobranza de Fletes - OperadorPro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .collection-list {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .collection-card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1.5rem;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .collection-card:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-color: #d4a574;
+    }
+
+    .collection-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .collection-folio {
+      font-weight: bold;
+      font-size: 1.1rem;
+      color: #333;
+    }
+
+    .collection-client {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 0.25rem;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+
+    .status-pending {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-partial {
+      background: #cfe2ff;
+      color: #084298;
+    }
+
+    .status-paid {
+      background: #d1e7dd;
+      color: #0f5132;
+    }
+
+    .status-cancelled {
+      background: #f8d7da;
+      color: #842029;
+    }
+
+    .amount-display {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #d4a574;
+      margin: 0.5rem 0;
+    }
+
+    .collection-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      font-size: 0.9rem;
+      color: #666;
+      margin: 1rem 0;
+    }
+
+    .collection-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    .btn-small {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.3s;
+    }
+
+    .btn-whatsapp {
+      background: #25d366;
+      color: white;
+    }
+
+    .btn-whatsapp:hover {
+      background: #1ea953;
+    }
+
+    .btn-primary-small {
+      background: #d4a574;
+      color: white;
+    }
+
+    .btn-primary-small:hover {
+      background: #c09460;
+    }
+
+    .btn-secondary-small {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-secondary-small:hover {
+      background: #e0e0e0;
+    }
+
+    .form-section {
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+
+    .form-section h3 {
+      margin-top: 0;
+      color: #333;
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group label {
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: #333;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .whatsapp-preview {
+      background: #e8f5e9;
+      border: 1px solid #c8e6c9;
+      border-radius: 4px;
+      padding: 1rem;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: #2e7d32;
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .message-preview-title {
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+      color: #1b5e20;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 1rem;
+      border-bottom: 2px solid #ddd;
+      margin-bottom: 2rem;
+    }
+
+    .tab-btn {
+      padding: 0.75rem 1.5rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      color: #666;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+
+    .tab-btn.active {
+      color: #d4a574;
+      border-bottom-color: #d4a574;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #666;
+    }
+
+    .error {
+      background: #ffe8e8;
+      color: #c00;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+
+    .success {
+      background: #e8f8f0;
+      color: #060;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #d4a574;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    .stat-subtext {
+      font-size: 0.8rem;
+      color: #999;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <div class="header-title">
+        <h1>💰 Cobranza de Fletes</h1>
+        <p>Gestiona y cobra tus fletes con WhatsApp</p>
+      </div>
+      <button onclick="logout()" class="btn-logout">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <nav class="nav-bottom">
+    <a href="app.html">📊 Panel</a>
+    <a href="carta-porte.html">📋 Carta Porte</a>
+    <a href="inspeccion.html">✅ Inspección</a>
+    <a href="cobranza.html" class="active">💰 Cobranza</a>
+    <a href="flota.html">🚚 Flota</a>
+  </nav>
+
+  <div class="container">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('lista')">Cobros Pendientes</button>
+      <button class="tab-btn" onclick="switchTab('crear')">+ Crear Cobro</button>
+    </div>
+
+    <!-- Tab: Lista de Cobros -->
+    <div id="tab-lista" class="tab-content active">
+      <div id="message-container"></div>
+
+      <!-- Estadísticas -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" id="stat-pending">0</div>
+          <div class="stat-label">Pendientes</div>
+          <div class="stat-subtext" id="stat-pending-amount">$0.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="stat-partial">0</div>
+          <div class="stat-label">Parcial</div>
+          <div class="stat-subtext" id="stat-partial-amount">$0.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="stat-paid">0</div>
+          <div class="stat-label">Pagados</div>
+          <div class="stat-subtext" id="stat-paid-amount">$0.00</div>
+        </div>
+      </div>
+
+      <div id="loading" class="loading" style="display:none">Cargando cobros...</div>
+      <div id="collection-list" class="collection-list"></div>
+    </div>
+
+    <!-- Tab: Crear Cobro -->
+    <div id="tab-crear" class="tab-content">
+      <div id="form-message-container"></div>
+
+      <form id="collectionForm">
+        <!-- Seleccionar Carta Porte -->
+        <div class="form-section">
+          <h3>Carta Porte</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Selecciona la Carta Porte a cobrar</label>
+              <select id="carta_porte_id" name="carta_porte_id" required>
+                <option value="">-- Cargando cartas porte --</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cliente y Monto -->
+        <div class="form-section">
+          <h3>Cliente y Monto</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Cliente (se auto-completa)</label>
+              <input type="text" id="client_name" readonly placeholder="Se actualizará al seleccionar carta porte">
+            </div>
+            <div class="form-group">
+              <label>Teléfono (para WhatsApp)</label>
+              <input type="tel" id="client_phone" placeholder="Ej: +521234567890 o 1234567890">
+            </div>
+            <div class="form-group">
+              <label>Monto a Cobrar *</label>
+              <input type="number" id="amount" name="amount" step="0.01" placeholder="Ej: 1500.00" required>
+            </div>
+            <div class="form-group">
+              <label>Moneda</label>
+              <select id="currency" name="currency">
+                <option value="MXN" selected>MXN</option>
+                <option value="USD">USD</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fechas y Términos -->
+        <div class="form-section">
+          <h3>Términos de Pago</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Fecha de Vencimiento</label>
+              <input type="date" id="due_date" name="due_date">
+            </div>
+            <div class="form-group">
+              <label>Notas</label>
+              <textarea id="notes" name="notes" placeholder="Ej: Pagar al recibir la mercancía..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview de Mensaje WhatsApp -->
+        <div class="form-section">
+          <h3>📱 Preview del Mensaje WhatsApp</h3>
+          <div class="whatsapp-preview">
+            <div class="message-preview-title">Mensaje que se enviará al cliente:</div>
+            <div id="message-preview">Ingresa los datos arriba para ver el preview...</div>
+          </div>
+        </div>
+
+        <!-- Botones -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+          <button type="submit" class="btn btn-primary">💾 Crear Cobro</button>
+          <button type="reset" class="btn btn-secondary">Limpiar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal para detalles y envío de recordatorio -->
+  <div id="reminderModal" style="display:none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 600px; width: 90%;">
+      <h3>Enviar Recordatorio</h3>
+      <div id="reminder-content"></div>
+      <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeReminderModal()">Cancelar</button>
+        <button type="button" class="btn btn-whatsapp" id="send-whatsapp-btn">📱 Enviar por WhatsApp</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/cobranza.js"></script>
+</body>
+</html>
