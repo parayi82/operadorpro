@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OperadorPro - Política de Privacidad y Términos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f9f9f9;
+        }
+
+        header {
+            background: linear-gradient(135deg, #d4a574 0%, #c8935f 100%);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        nav {
+            background: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #d4a574;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .content {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 40px;
+            display: none;
+        }
+
+        .content.active {
+            display: block;
+        }
+
+        h2 {
+            color: #d4a574;
+            font-size: 2rem;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #d4a574;
+            padding-bottom: 15px;
+        }
+
+        h3 {
+            color: #333;
+            font-size: 1.3rem;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+
+        p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 15px;
+        }
+
+        li {
+            margin-bottom: 10px;
+        }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 20px;
+            border-left: 4px solid #d4a574;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .footer {
+            background: #333;
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            margin-top: 60px;
+        }
+
+        .footer p {
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .section-intro {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            font-style: italic;
+            color: #666;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        table th, table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        table th {
+            background: #d4a574;
+            color: white;
+            font-weight: bold;
+        }
+
+        table tr:hover {
+            background: #f5f5f5;
+        }
+
+        .tabs-container {
+            display: flex;
+            gap: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            background: #f9f9f9;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-button.active {
+            background: white;
+            color: #d4a574;
+            border-bottom-color: #d4a574;
+        }
+
+        .tab-button:hover {
+            background: white;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            nav ul {
+                gap: 15px;
+            }
+
+            .container {
+                padding: 0 15px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>OperadorPro</h1>
+        <p>Gestión Integral de Flota y Cumplimiento Normativo</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#" onclick="showTab('inicio'); return false;">Inicio</a></li>
+            <li><a href="#" onclick="showTab('privacy'); return false;">Política de Privacidad</a></li>
+            <li><a href="#" onclick="showTab('terms'); return false;">Términos de Servicio</a></li>
+            <li><a href="#" onclick="showTab('contact'); return false;">Contacto</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <!-- INICIO -->
+        <div id="inicio" class="content active">
+            <h2>Bienvenido a OperadorPro</h2>
+
+            <p>OperadorPro es la solución completa para operadores de transporte en México, diseñada para simplificar la gestión de tu flota y cumplir con regulaciones normativas.</p>
+
+            <h3>Características Principales</h3>
+            <ul>
+                <li><strong>📋 Cartas Porte Digitales:</strong> Crea y gestiona Cartas Porte con folio automático</li>
+                <li><strong>📸 Inspecciones Pre-Viaje:</strong> Checklist completo con captura de fotos</li>
+                <li><strong>💰 Gestión de Cobranza:</strong> Seguimiento y recordatorios automáticos por WhatsApp</li>
+                <li><strong>🚚 Inventario de Flota:</strong> Control de vehículos y documentos</li>
+                <li><strong>🔔 Notificaciones Push:</strong> Recordatorios automáticos y alertas</li>
+            </ul>
+
+            <h3>Documentos Legales</h3>
+            <p>Hemos preparado esta página para cumplir con las regulaciones de transparencia de las tiendas de aplicaciones. Aquí encontrarás:</p>
+            <ul>
+                <li>Nuestra Política de Privacidad completa</li>
+                <li>Términos de Servicio</li>
+                <li>Información de contacto para dudas legales</li>
+            </ul>
+
+            <div class="highlight">
+                <strong>ℹ️ Nota:</strong> Al usar OperadorPro, aceptas nuestra Política de Privacidad y Términos de Servicio. Te recomendamos leer ambos documentos cuidadosamente.
+            </div>
+
+            <h3>Descarga OperadorPro</h3>
+            <p>La aplicación está disponible en:</p>
+            <ul>
+                <li>📱 <strong>iOS:</strong> App Store (próximamente)</li>
+                <li>🤖 <strong>Android:</strong> Google Play (próximamente)</li>
+            </ul>
+        </div>
+
+        <!-- PRIVACY POLICY -->
+        <div id="privacy" class="content">
+            <h2>Política de Privacidad</h2>
+            <p><strong>Última actualización: 4 de agosto de 2026</strong></p>
+
+            <div class="section-intro">
+                OperadorPro está comprometido con proteger tu privacidad. Esta política explica cómo recolectamos, usamos y protegemos tu información personal.
+            </div>
+
+            <h3>1. Información que Recolectamos</h3>
+            <ul>
+                <li><strong>Autenticación:</strong> Email, contraseña (hasheada), nombre completo</li>
+                <li><strong>Operación:</strong> Cartas Porte, inspecciones, cobranzas, flota</li>
+                <li><strong>Ubicación:</strong> Coordenadas GPS (solo con tu consentimiento)</li>
+                <li><strong>Fotos:</strong> Fotografías de inspecciones</li>
+                <li><strong>Dispositivo:</strong> Token de notificaciones, tipo de dispositivo, versión del SO</li>
+            </ul>
+
+            <h3>2. Cómo Usamos tu Información</h3>
+            <ul>
+                <li>Proporcionar el servicio y tus funcionalidades</li>
+                <li>Mejorar la aplicación</li>
+                <li>Enviar notificaciones y recordatorios</li>
+                <li>Cumplir con leyes de México</li>
+            </ul>
+
+            <div class="highlight">
+                <strong>✅ Importante:</strong> NO vendemos, compartimos ni alquilamos tu información personal a terceros con fines de marketing.
+            </div>
+
+            <h3>3. Seguridad de tus Datos</h3>
+            <ul>
+                <li>Encriptación HTTPS/TLS en todas las transmisiones</li>
+                <li>Row-Level Security (RLS): Solo tú ves tus datos</li>
+                <li>Almacenamiento en Supabase con backups diarios</li>
+                <li>Acceso restringido solo a personal de soporte en caso necesario</li>
+            </ul>
+
+            <h3>4. Permisos de la Aplicación</h3>
+            <table>
+                <tr>
+                    <th>Permiso</th>
+                    <th>Uso</th>
+                    <th>Datos</th>
+                </tr>
+                <tr>
+                    <td>📷 Cámara</td>
+                    <td>Capturar fotos de inspecciones</td>
+                    <td>Fotografías</td>
+                </tr>
+                <tr>
+                    <td>📍 Ubicación</td>
+                    <td>Geo-tagging de inspecciones</td>
+                    <td>Coordenadas GPS</td>
+                </tr>
+                <tr>
+                    <td>🖼️ Galería</td>
+                    <td>Subir fotos de galería</td>
+                    <td>Fotos seleccionadas</td>
+                </tr>
+                <tr>
+                    <td>🔔 Notificaciones</td>
+                    <td>Enviar recordatorios</td>
+                    <td>Token de notificaciones</td>
+                </tr>
+            </table>
+
+            <h3>5. Tus Derechos</h3>
+            <ul>
+                <li><strong>Acceso:</strong> Solicita una copia de tus datos</li>
+                <li><strong>Corrección:</strong> Actualiza tu información en la app</li>
+                <li><strong>Eliminación:</strong> Solicita borrar tu cuenta y datos</li>
+                <li><strong>Portabilidad:</strong> Recibe tus datos en formato máquina-legible</li>
+            </ul>
+
+            <h3>6. Contacto</h3>
+            <p>Para ejercer tus derechos o preguntas sobre privacidad:</p>
+            <ul>
+                <li><strong>Email:</strong> privacy@operadorpro.com</li>
+                <li><strong>Teléfono:</strong> +52 (55) XXXX-XXXX</li>
+            </ul>
+        </div>
+
+        <!-- TERMS OF SERVICE -->
+        <div id="terms" class="content">
+            <h2>Términos de Servicio</h2>
+            <p><strong>Última actualización: 4 de agosto de 2026</strong></p>
+
+            <div class="section-intro">
+                Al usar OperadorPro, aceptas estos Términos de Servicio. Si no aceptas, no uses la aplicación.
+            </div>
+
+            <h3>1. Descripción del Servicio</h3>
+            <p>OperadorPro es una aplicación móvil para operadores de transporte que proporciona herramientas para:</p>
+            <ul>
+                <li>Crear y gestionar Cartas Porte digitales</li>
+                <li>Realizar inspecciones pre-viaje</li>
+                <li>Gestionar cobranzas</li>
+                <li>Mantener inventario de flota</li>
+                <li>Recibir notificaciones y recordatorios</li>
+            </ul>
+
+            <h3>2. Requisitos de Uso</h3>
+            <p>Para usar OperadorPro debes:</p>
+            <ul>
+                <li>Tener al menos 18 años</li>
+                <li>Ser operador de transporte o personal autorizado</li>
+                <li>Tener un dispositivo móvil compatible</li>
+                <li>Aceptar estos Términos y la Política de Privacidad</li>
+            </ul>
+
+            <h3>3. Uso Permitido ✅</h3>
+            <ul>
+                <li>Crear y almacenar registros de operación</li>
+                <li>Capturar fotos de inspecciones</li>
+                <li>Usar la app para operaciones legítimas de transporte</li>
+            </ul>
+
+            <h3>4. Uso Prohibido ❌</h3>
+            <ul>
+                <li>Transportar sustancias ilícitas</li>
+                <li>Falsificar documentos o información</li>
+                <li>Usar la app para fraude o engaño</li>
+                <li>Intentar acceder sin autorización a sistemas</li>
+                <li>Distribuir malware o código malicioso</li>
+                <li>Violar leyes de México</li>
+            </ul>
+
+            <div class="highlight">
+                <strong>⚠️ Responsabilidad:</strong> Eres responsable de la precisión de la información que proporciones y del cumplimiento con leyes de transporte de México.
+            </div>
+
+            <h3>5. Derechos de Propiedad Intelectual</h3>
+            <ul>
+                <li>La app es propiedad de OperadorPro (derechos de autor)</li>
+                <li>Se concede licencia solo para uso personal</li>
+                <li>No puedes copiar, vender ni modificar la app</li>
+                <li>Los datos que creas (Cartas Porte, inspecciones) son tuyos</li>
+            </ul>
+
+            <h3>6. Exención de Garantías</h3>
+            <p>OperadorPro se proporciona "TAL CUAL" sin garantías de:</p>
+            <ul>
+                <li>Disponibilidad continua (puede haber interrupciones)</li>
+                <li>Ausencia de errores</li>
+                <li>Cumplimiento automático con regulaciones</li>
+            </ul>
+
+            <h3>7. Limitación de Responsabilidad</h3>
+            <p>OperadorPro no será responsable por:</p>
+            <ul>
+                <li>Pérdida de datos o información</li>
+                <li>Daños indirectos o consecuentes</li>
+                <li>Lucro cesante</li>
+                <li>Errores en cálculos o registros</li>
+            </ul>
+
+            <h3>8. Ley Aplicable</h3>
+            <p>Estos Términos se rigen por las leyes de <strong>México</strong>. Cualquier disputa se resolverá según la ley mexicana.</p>
+
+            <h3>9. Contacto</h3>
+            <p>Para preguntas legales:</p>
+            <ul>
+                <li><strong>Email:</strong> legal@operadorpro.com</li>
+                <li><strong>Teléfono:</strong> +52 (55) XXXX-XXXX</li>
+            </ul>
+        </div>
+
+        <!-- CONTACTO -->
+        <div id="contact" class="content">
+            <h2>Contacto</h2>
+
+            <h3>¿Preguntas sobre OperadorPro?</h3>
+            <p>Estamos aquí para ayudarte. Contáctanos por cualquiera de estos canales:</p>
+
+            <h3>📧 Email</h3>
+            <ul>
+                <li><strong>Soporte General:</strong> support@operadorpro.com</li>
+                <li><strong>Privacidad:</strong> privacy@operadorpro.com</li>
+                <li><strong>Legal:</strong> legal@operadorpro.com</li>
+            </ul>
+
+            <h3>📞 Teléfono</h3>
+            <p>+52 (55) XXXX-XXXX (Lunes a Viernes, 9:00 - 18:00 hrs)</p>
+
+            <h3>🌐 Redes Sociales</h3>
+            <p>Síguenos para actualizaciones:</p>
+            <ul>
+                <li>Facebook: facebook.com/operadorpro</li>
+                <li>Twitter: @operadorpro</li>
+                <li>Instagram: @operadorpro</li>
+            </ul>
+
+            <h3>📍 Dirección Física</h3>
+            <p>Oficina Principal<br>
+            Ciudad de México<br>
+            México</p>
+
+            <h3>⏱️ Tiempo de Respuesta</h3>
+            <ul>
+                <li><strong>Chat de soporte:</strong> Respuesta en 2-4 horas</li>
+                <li><strong>Email:</strong> Respuesta en 24 horas</li>
+                <li><strong>Teléfono:</strong> Llamadas durante horario de oficina</li>
+            </ul>
+
+            <div class="highlight">
+                <strong>💡 Tip:</strong> Si reportas un problema técnico, incluye:
+                <ul>
+                    <li>Descripción detallada del problema</li>
+                    <li>Screenshot o video del error</li>
+                    <li>Versión de tu dispositivo y SO</li>
+                    <li>Versión de OperadorPro (Configuración → Acerca de)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2026 OperadorPro. Todos los derechos reservados.</p>
+        <p>Última actualización: 4 de agosto de 2026</p>
+        <p>Made for Mexican Truck Drivers 🚚</p>
+    </footer>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all content
+            const contents = document.querySelectorAll('.content');
+            contents.forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Show selected content
+            document.getElementById(tabName).classList.add('active');
+
+            // Scroll to top
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>
