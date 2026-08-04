@@ -1,0 +1,49 @@
+{
+  "cli": {
+    "version": ">= 5.0.0",
+    "requireCommit": false
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "buildConfiguration": "Debug"
+      },
+      "android": {
+        "buildType": "apk",
+        "withoutCredentials": true
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "distribution": "store",
+      "android": {
+        "buildType": "aab"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "tu-email@example.com",
+        "ascAppId": "6734567890",
+        "appleTeamId": "ABC123XYZ",
+        "workflowIdentifier": "com.operadorpro.app"
+      },
+      "android": {
+        "serviceAccount": "./google-play-key.json",
+        "track": "production"
+      }
+    }
+  },
+  "resourceClass": {
+    "ios": "default",
+    "android": "default"
+  }
+}

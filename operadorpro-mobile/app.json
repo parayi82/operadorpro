@@ -1,42 +1,119 @@
 {
   "expo": {
-    "name": "operadorpro-mobile",
-    "slug": "operadorpro-mobile",
+    "name": "OperadorPro",
+    "slug": "operadorpro",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "operadorpromobile",
+    "scheme": "operadorpro",
     "userInterfaceStyle": "automatic",
-    "ios": {
-      "icon": "./assets/expo.icon"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
-      "predictiveBackGestureEnabled": false
-    },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
-    },
+    "description": "Gestión integral de flota y cumplimiento normativo para operadores de transporte en México. Cartas Porte, inspecciones pre-viaje, cobranza y más.",
+    "primaryColor": "#d4a574",
+    "backgroundColor": "#ffffff",
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#d4a574",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 200
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "OperadorPro necesita acceso a tu cámara para capturar fotos de inspecciones.",
+          "microphonePermission": "OperadorPro necesita acceso al micrófono."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "OperadorPro necesita acceso a tu ubicación para registrar inspecciones con geolocalización."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#d4a574",
+          "sounds": ["./assets/notification-sound.wav"],
+          "modes": ["productionMode"]
         }
       ]
     ],
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "typedRoutes": true
+    },
+    "ios": {
+      "bundleIdentifier": "com.operadorpro.app",
+      "buildNumber": "1",
+      "supportsTabletMode": true,
+      "icon": "./assets/expo.icon",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Necesitamos acceso a tu cámara para capturar fotos",
+        "NSLocationWhenInUseUsageDescription": "Necesitamos tu ubicación para geo-etiquetar inspecciones",
+        "NSMicrophoneUsageDescription": "Necesitamos acceso al micrófono",
+        "NSPhotoLibraryUsageDescription": "Necesitamos acceso a tu galería",
+        "NSPhotoLibraryAddUsageDescription": "Necesitamos guardar fotos",
+        "NSCalendarsUsageDescription": "No usamos calendarios"
+      },
+      "splash": {
+        "image": "./assets/images/splash-icon.png",
+        "tabletImage": "./assets/images/splash-icon.png",
+        "backgroundColor": "#d4a574",
+        "resizeMode": "contain"
+      },
+      "privacyManifestPath": "./ios/PrivacyInfo.xcprivacy"
+    },
+    "android": {
+      "package": "com.operadorpro.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "INTERNET",
+        "VIBRATE"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": {
+            "scheme": "operadorpro"
+          },
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
+      "usesPermission": [
+        {
+          "name": "android.permission.CAMERA"
+        },
+        {
+          "name": "android.permission.ACCESS_FINE_LOCATION"
+        },
+        {
+          "name": "android.permission.ACCESS_COARSE_LOCATION"
+        }
+      ]
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "PASTE_YOUR_EAS_PROJECT_ID_HERE"
+      }
     }
   }
 }
