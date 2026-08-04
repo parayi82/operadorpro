@@ -31,7 +31,11 @@ yarn-error.*
 *.pem
 
 # local env files
-.env*.local
+.env.local
+.env.production
+.env.development
+.env.*.local
+.env
 
 # typescript
 *.tsbuildinfo
@@ -41,3 +45,71 @@ example
 # generated native folders
 /ios
 /android
+
+# EXCEPT: These critical files SHOULD be versioned
+!ios/PrivacyInfo.xcprivacy
+
+# EAS & Build artifacts
+dist/
+build/
+*.ipa
+*.apk
+*.aab
+
+# Certificates & Keys (NEVER commit these!)
+*.p8
+*.p12
+*.key
+*.pem
+*.jks
+google-play-key.json
+*.mobileprovision
+*.cer
+*.csr
+*.der
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+DerivedData/
+.xcode.env.local
+
+# Android
+.gradle/
+.android/
+local.properties
+gradlew
+gradlew.bat
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencies lock files (if using mono-repo, might want to track these)
+# Uncomment if you prefer to not track lock files
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Sensitive configurations
+.env.secrets
+secrets/
+credentials/
+tokens/
