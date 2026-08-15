@@ -526,6 +526,9 @@ async function handleCreateClient(e) {
     phone: document.getElementById('newClientPhone').value
   };
 
+  const modalMsg = document.getElementById('client-modal-msg');
+  modalMsg.style.display = 'none';
+
   try {
     const { error } = await supabase
       .from('clients')
@@ -533,12 +536,13 @@ async function handleCreateClient(e) {
 
     if (error) throw error;
 
-    showMessage('Cliente creado ✅', 'success', 'form-message-container');
     closeClientModal();
+    showMessage('Cliente creado ✅', 'success', 'form-message-container');
     await loadClientes();
   } catch (err) {
     console.error('Error creando cliente:', err);
-    showMessage(`Error: ${err.message}`, 'error');
+    modalMsg.textContent = `Error: ${err.message}`;
+    modalMsg.style.display = 'block';
   }
 }
 
@@ -551,7 +555,9 @@ function switchTab(tabName) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
 
   document.getElementById(`tab-${tabName}`).classList.add('active');
-  event.target.classList.add('active');
+  const btns = document.querySelectorAll('.tab-btn');
+  const idx = tabName === 'lista' ? 0 : 1;
+  if (btns[idx]) btns[idx].classList.add('active');
 }
 
 function showMessage(msg, type = 'info', containerId = 'message-container') {

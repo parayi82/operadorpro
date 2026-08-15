@@ -307,36 +307,30 @@ Quedamos atentos a tu confirmación de pago.
   `;
 
   document.getElementById('send-whatsapp-btn').onclick = async () => {
+    // Abrir WhatsApp siempre, independiente del resultado de la DB
+    window.open(waLink, '_blank');
+    closeReminderModal();
+    showMessage('✅ Recordatorio enviado a WhatsApp', 'success');
+
+    // Registrar en DB de forma best-effort (no bloquea si falla)
     try {
-      // Registrar recordatorio en DB
-      const { error } = await supabase
+      const { error: remErr } = await supabase
         .from('collection_reminders')
-        .insert([{
-          collection_id: cobroId,
-          reminder_type: 'whatsapp',
-          status: 'sent'
-        }]);
+        .insert([{ collection_id: cobroId, reminder_type: 'whatsapp', status: 'sent' }]);
 
-      if (error) throw error;
+      if (!remErr) {
+        await supabase
+          .from('freight_collections')
+          .update({
+            reminders_sent: (cobro.reminders_sent || 0) + 1,
+            last_reminder_sent_at: new Date().toISOString()
+          })
+          .eq('id', cobroId);
 
-      // Actualizar contador de recordatorios
-      await supabase
-        .from('freight_collections')
-        .update({
-          reminders_sent: (cobro.reminders_sent || 0) + 1,
-          last_reminder_sent_at: new Date().toISOString()
-        })
-        .eq('id', cobroId);
-
-      // Abrir WhatsApp
-      window.open(waLink, '_blank');
-
-      showMessage('✅ Recordatorio enviado a WhatsApp', 'success');
-      closeReminderModal();
-      await loadCobros();
-    } catch (err) {
-      console.error('Error:', err);
-      showMessage(`Error: ${err.message}`, 'error');
+        await loadCobros();
+      }
+    } catch (dbErr) {
+      console.warn('Error registrando recordatorio en DB (best-effort):', dbErr.message);
     }
   };
 
@@ -423,14 +417,10 @@ function switchTab(tabName) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
 
-  if (tabName === 'lista') {
-    document.getElementById('tab-lista').classList.add('active');
-  } else {
-    document.getElementById('tab-crear').classList.add('active');
-  }
-
-  // Activar botón clickeado
-  event.target.classList.add('active');
+  const isLista = tabName === 'lista';
+  document.getElementById(isLista ? 'tab-lista' : 'tab-crear').classList.add('active');
+  const btns = document.querySelectorAll('.tab-btn');
+  if (btns[isLista ? 0 : 1]) btns[isLista ? 0 : 1].classList.add('active');
 }
 
 function showMessage(msg, type = 'info', containerId = 'message-container') {

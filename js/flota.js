@@ -455,14 +455,10 @@ function switchTab(tabName) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
 
-  if (tabName === 'lista') {
-    document.getElementById('tab-lista').classList.add('active');
-  } else {
-    document.getElementById('tab-crear').classList.add('active');
-  }
-
-  // Activar botón clickeado
-  event.target.classList.add('active');
+  const isLista = tabName === 'lista';
+  document.getElementById(isLista ? 'tab-lista' : 'tab-crear').classList.add('active');
+  const btns = document.querySelectorAll('.tab-btn');
+  if (btns[isLista ? 0 : 1]) btns[isLista ? 0 : 1].classList.add('active');
 }
 
 function showMessage(msg, type = 'info', containerId = 'message-container') {
