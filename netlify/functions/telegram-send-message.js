@@ -6,9 +6,6 @@
 const https = require("https");
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN not set");
-
-const API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
 // Enviar mensaje de texto con teclado opcional
 async function send(chatId, text, buttons = null, replyMode = false) {
@@ -59,10 +56,12 @@ async function sendDocument(chatId, fileId, caption = null) {
 
 // Helper: POST a Telegram API
 function post(endpoint, data) {
+  if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN no está configurado");
+  const apiUrl = `https://api.telegram.org/bot${BOT_TOKEN}`;
   return new Promise((resolve, reject) => {
     const body = JSON.stringify(data);
     const req = https.request(
-      API_URL + endpoint,
+      apiUrl + endpoint,
       {
         method: "POST",
         headers: {

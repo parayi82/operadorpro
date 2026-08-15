@@ -4,7 +4,6 @@
 // ============================================================
 
 const Stripe = require("stripe");
-const { createClient } = require("@supabase/supabase-js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -13,7 +12,6 @@ exports.handler = async (event) => {
 
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-    const admin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
     // 1. Parsear datos: email y plan
     const { email, plan: rawPlan } = JSON.parse(event.body || "{}");
@@ -30,26 +28,22 @@ exports.handler = async (event) => {
       return { statusCode: 500, body: JSON.stringify({ error: "Plan no configurado" }) };
     }
 
-    // 2. Verificar si ya existe un usuario con ese email
-    const { data: existingUser, error: userError } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("email", email.toLowerCase())
-      .single();
+    const emailLower = email.toLowerCase();
 
-    if (!userError && existingUser) {
-      return { statusCode: 400, body: JSON.stringify({ error: "Este email ya está registrado" }) };
+    // 2. Verificar duplicados vía Stripe (fuente de verdad para suscripciones).
+    //    profiles no tiene columna email, por lo que la verificación va directo al proveedor.
+    const customers = await stripe.customers.list({ email: emailLower, limit: 1 });
+    let customerId;
+    if (customers.data.length > 0) {
+      customerId = customers.data[0].id;
+      const activeSubs = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 });
+      if (activeSubs.data.length > 0) {
+        return { statusCode: 400, body: JSON.stringify({ error: "Este email ya tiene una suscripción activa. Inicia sesión en tu cuenta." }) };
+      }
     }
 
     // 3. Crear (o reutilizar) el customer de Stripe
-    let customerId;
-    const emailLower = email.toLowerCase();
-
-    // Buscar si Stripe ya tiene un customer con este email
-    const customers = await stripe.customers.list({ email: emailLower, limit: 1 });
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-    } else {
+    if (!customerId) {
       // Crear nuevo customer
       const customer = await stripe.customers.create({
         email: emailLower,

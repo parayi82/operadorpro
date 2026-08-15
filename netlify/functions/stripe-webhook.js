@@ -71,34 +71,47 @@ exports.handler = async (event) => {
               if (authError || !newUser) {
                 console.error("Error creating auth user:", authError);
               } else {
-                // Crear perfil con la suscripción ya activa
-                await admin.from("profiles").insert({
-                  id: newUser.user.id,
-                  email: email.toLowerCase(),
-                  full_name: email.split("@")[0], // Usar parte del email como nombre temporal
+                // Actualizar perfil (el trigger on_auth_user_created ya lo creó)
+                await admin.from("profiles").update({
+                  full_name: email.split("@")[0],
                   stripe_customer_id: session.customer,
                   subscription_status: "active",
                   plan: plan,
-                  created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString()
-                });
+                }).eq("id", newUser.user.id);
 
-                // Enviar email de bienvenida con instrucciones para resetear password
-                // TODO: Implementar envío de email con contraseña temporal y link para resetear
-                console.log(`Account created for ${email}, temp password sent`);
+                // Enviar email para que el usuario establezca su contraseña
+                // generateLink con type 'recovery' dispara el email de reset via Supabase
+                const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+                  type: "recovery",
+                  email: email,
+                  options: { redirectTo: `${process.env.SITE_URL || ""}/app.html#/perfil` }
+                });
+                if (linkErr) {
+                  console.error("Error generando link de bienvenida:", linkErr.message);
+                } else {
+                  console.log(`Cuenta creada para ${email}. Link de acceso: ${linkData?.properties?.action_link}`);
+                }
               }
             } catch (createErr) {
               console.error("Error auto-creating account:", createErr);
             }
           } else {
-            // Usuario ya existe, solo actualizar la suscripción
+            // Usuario ya existe, actualizar la suscripción por UUID (no hay columna email en profiles)
             const update = {
               stripe_customer_id: session.customer,
               subscription_status: "active",
               plan,
               updated_at: new Date().toISOString()
             };
-            await admin.from("profiles").update(update).eq("email", email.toLowerCase());
+            const authUser = existingUser?.users?.find(
+              (u) => u.email === email.toLowerCase() || u.email === email
+            );
+            if (authUser) {
+              await admin.from("profiles").update(update).eq("id", authUser.id);
+            } else {
+              console.warn(`stripe-webhook: no se encontró usuario en auth para email ${email}`);
+            }
           }
         } else {
           // Usuario autenticado (flujo anterior)

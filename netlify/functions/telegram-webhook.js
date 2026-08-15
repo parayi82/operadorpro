@@ -12,7 +12,6 @@ const telegramConversation = require("./telegram-conversation");
 const telegramPhotoHandler = require("./telegram-photo-handler");
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN not set");
 
 async function handleMessage(admin, message) {
   const telegramUserId = message.from.id.toString();
@@ -162,6 +161,10 @@ async function handlePhotoMessage(admin, telegramUserId, chatId, photos) {
 }
 
 exports.handler = async (event) => {
+  if (!BOT_TOKEN) {
+    console.error("TELEGRAM_BOT_TOKEN no está configurado");
+    return { statusCode: 500, body: JSON.stringify({ error: "Bot no configurado" }) };
+  }
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed" }) };
   }

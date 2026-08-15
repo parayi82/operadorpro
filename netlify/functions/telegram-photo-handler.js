@@ -12,11 +12,15 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!BOT_TOKEN || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error("Telegram o Supabase env vars not set");
+// Cliente inicializado en runtime para evitar crash en cold start sin env vars
+let _sb;
+function getSb() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Faltan variables de entorno de Supabase");
+  }
+  if (!_sb) _sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  return _sb;
 }
-
-const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 // Descargar archivo de Telegram
 async function downloadFromTelegram(fileId) {
@@ -59,6 +63,7 @@ async function downloadFile(filePath) {
 
 // Subir foto a Supabase Storage
 async function uploadPhotoToStorage(buffer, bucket, fileName) {
+  const sb = getSb();
   const { data, error } = await sb.storage
     .from(bucket)
     .upload(fileName, buffer, {
@@ -95,13 +100,13 @@ async function processPhotoForInspection(
     // Subir a Supabase Storage
     const timestamp = Date.now();
     const fileName = `telegram/${session.company_id}/inspections/${timestamp}-${photoType}.jpg`;
-    const photoUrl = await uploadPhotoToStorage(buffer, "evidence", fileName);
+    const photoUrl = await uploadPhotoToStorage(buffer, "trip-evidence", fileName);
 
     logger.info("telegram.photo_uploaded", {
       chatId,
       photoType,
       fileName,
-      bucket: "evidence"
+      bucket: "trip-evidence"
     });
 
     return photoUrl;
@@ -123,12 +128,12 @@ async function processPhotoForExpense(fileId, chatId, session, admin) {
 
     const timestamp = Date.now();
     const fileName = `telegram/${session.company_id}/receipts/${timestamp}-receipt.jpg`;
-    const photoUrl = await uploadPhotoToStorage(buffer, "evidence", fileName);
+    const photoUrl = await uploadPhotoToStorage(buffer, "trip-evidence", fileName);
 
     logger.info("telegram.receipt_uploaded", {
       chatId,
       fileName,
-      bucket: "evidence"
+      bucket: "trip-evidence"
     });
 
     return photoUrl;
