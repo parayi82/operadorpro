@@ -73,17 +73,16 @@ exports.handler = async (event) => {
       };
     }
 
-    // 5. Crear perfil
+    // 5. Actualizar perfil (el trigger on_auth_user_created ya lo creó automáticamente)
     const { error: profileError } = await admin
       .from("profiles")
-      .insert({
-        id: newUser.user.id,
+      .update({
         full_name: full_name || email.split("@")[0],
         subscription_status,
         plan,
-        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
-      });
+      })
+      .eq("id", newUser.user.id);
 
     if (profileError) {
       console.error("Error creating profile:", profileError);
@@ -99,27 +98,27 @@ exports.handler = async (event) => {
       const { data: company } = await admin
         .from("companies")
         .select("id")
-        .eq("user_id", newUser.user.id)
+        .eq("owner_user_id", newUser.user.id)
         .single();
 
       if (!company) {
-        // La empresa debería crearse automáticamente por el trigger
-        // Pero si no existe, crearla aquí
+        // La empresa debería crearse automáticamente por el trigger handle_new_user_company
+        // Si no existe (edge case), crearla manualmente
         const { data: newCompany, error: companyError } = await admin
           .from("companies")
           .insert({
-            user_id: newUser.user.id,
+            owner_user_id: newUser.user.id,
             name: full_name || email.split("@")[0],
-            entity_type: "persona_fisica",
+            entity_type: "fisica",
             plan,
             subscription_status: "active",
-            created_at: new Date().toISOString()
           })
           .select("id")
           .single();
 
         if (!companyError && newCompany) {
-          // Agregar como miembro de la empresa
+          // El trigger handle_new_company inserta el owner en company_members automáticamente.
+          // El insert manual aquí es por si el trigger falló.
           await admin
             .from("company_members")
             .insert({
@@ -127,8 +126,8 @@ exports.handler = async (event) => {
               company_id: newCompany.id,
               role: "owner",
               status: "active",
-              joined_at: new Date().toISOString()
-            });
+            })
+            .throwOnError();
         }
       }
     }

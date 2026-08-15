@@ -12,11 +12,13 @@ create table if not exists public.profiles (
   licencia_numero text,
   licencia_categoria text, -- B, C, E, F (licencia federal SICT)
   licencia_vigencia date,
+  examen_medico_vigencia date, -- vencimiento examen médico (panel.js)
   experiencia_anios int default 0,
   unidades text[] default '{}', -- ej. {'Tractocamión 5a rueda','Doble remolque'}
   stripe_customer_id text,
   subscription_status text not null default 'inactive', -- inactive | active | past_due | canceled
   plan text not null default 'esencial' check (plan in ('esencial','protegido')),
+  push_token text, -- Expo push notification token (app móvil)
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
