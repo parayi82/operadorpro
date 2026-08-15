@@ -4,7 +4,6 @@
 // ============================================================
 
 const Stripe = require("stripe");
-const { createClient } = require("@supabase/supabase-js");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -13,7 +12,6 @@ exports.handler = async (event) => {
 
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-    const admin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
     // 1. Parsear datos: email y plan
     const { email, plan: rawPlan } = JSON.parse(event.body || "{}");

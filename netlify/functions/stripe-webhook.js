@@ -80,9 +80,18 @@ exports.handler = async (event) => {
                   updated_at: new Date().toISOString()
                 }).eq("id", newUser.user.id);
 
-                // Enviar email de bienvenida con instrucciones para resetear password
-                // TODO: Implementar envío de email con contraseña temporal y link para resetear
-                console.log(`Account created for ${email}, temp password sent`);
+                // Enviar email para que el usuario establezca su contraseña
+                // generateLink con type 'recovery' dispara el email de reset via Supabase
+                const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+                  type: "recovery",
+                  email: email,
+                  options: { redirectTo: `${process.env.SITE_URL || ""}/app.html#/perfil` }
+                });
+                if (linkErr) {
+                  console.error("Error generando link de bienvenida:", linkErr.message);
+                } else {
+                  console.log(`Cuenta creada para ${email}. Link de acceso: ${linkData?.properties?.action_link}`);
+                }
               }
             } catch (createErr) {
               console.error("Error auto-creating account:", createErr);

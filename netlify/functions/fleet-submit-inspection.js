@@ -17,6 +17,7 @@ const { assertBelongsToCompany } = require("./_lib/tenant");
 const { created } = require("./_lib/response");
 const { evaluate, missingRequirements } = require("./domain/inspections");
 const { ValidationError } = require("./_lib/errors");
+const { sendWhatsApp } = require("./_lib/notify");
 const logger = require("./_lib/logger");
 
 exports.handler = withHandler(
@@ -64,8 +65,35 @@ exports.handler = withHandler(
 
     if (status === "rechazada") {
       logger.warn("inspection.rejected", { inspectionId: inspection.id, vehicleId: input.vehicle_id });
-      // TODO integración: alertar al jefe de taller vía WhatsApp (sendWhatsApp)
-      // cuando exista un campo de teléfono de contacto del taller en companies.
+
+      // Alertar al dueño de la empresa vía WhatsApp (best-effort, nunca bloquea la respuesta)
+      (async () => {
+        try {
+          const { data: ownerMember } = await admin
+            .from("company_members")
+            .select("user_id")
+            .eq("company_id", input.company_id)
+            .eq("role", "owner")
+            .single();
+
+          if (!ownerMember?.user_id) return;
+
+          const { data: ownerProfile } = await admin
+            .from("profiles")
+            .select("phone")
+            .eq("id", ownerMember.user_id)
+            .single();
+
+          if (!ownerProfile?.phone) return;
+
+          await sendWhatsApp(
+            ownerProfile.phone,
+            `⚠️ Inspección RECHAZADA en OperadorPro\n\nLa unidad no pasó la revisión pre-viaje (NOM-068). Hay elementos críticos que requieren atención antes de salir. Revisa los detalles en tu panel: ${process.env.SITE_URL || "https://operadorpro.netlify.app"}/app.html#/inspecciones`
+          );
+        } catch (alertErr) {
+          logger.warn("inspection.alert_failed", { inspectionId: inspection.id, error: alertErr.message });
+        }
+      })();
     }
 
     return created({ inspection: { ...inspection, status } });

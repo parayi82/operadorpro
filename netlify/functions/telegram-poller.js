@@ -13,7 +13,6 @@ const telegramConversation = require("./telegram-conversation");
 const telegramPhotoHandler = require("./telegram-photo-handler");
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN not set");
 
 async function getLatestUpdateId() {
   return new Promise((resolve, reject) => {
@@ -277,6 +276,11 @@ async function handlePhotoMessage(admin, telegramUserId, chatId, photos) {
 
 // Función programada (cron) — ejecutada por Netlify cada minuto
 exports.handler = async (event, context) => {
+  if (!BOT_TOKEN) {
+    console.error("TELEGRAM_BOT_TOKEN no está configurado — polling desactivado");
+    return { statusCode: 500, body: JSON.stringify({ error: "Bot no configurado" }) };
+  }
+
   let pollState = null;
   let lastUpdateId = 0;
 

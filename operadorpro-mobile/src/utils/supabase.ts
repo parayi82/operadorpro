@@ -1,8 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const SUPABASE_URL = 'https://qvvreivgwrdbfhukfnxe.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2dnJlaXZnd3JkYmZodWtmbnhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjI3NDE3OTAsImV4cCI6MjAzODMxNzc5MH0.5rYJXaUe4aXI-G3qG4d7_rXaY8cHqaXaRMVMdBLvQpU';
+// Mismos valores que js/config.js en la app web.
+// En CI/CD, sobreescribir con EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY.
+const SUPABASE_URL =
+  process.env.EXPO_PUBLIC_SUPABASE_URL ?? 'https://siqkkcltkrmdexxlcuat.supabase.co';
+const SUPABASE_ANON_KEY =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? 'sb_publishable_DY9H6ZXr8AzRWUYIiXInYg_ENWORovL';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
