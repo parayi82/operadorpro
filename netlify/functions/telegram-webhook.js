@@ -60,6 +60,26 @@ async function handleMessage(admin, message) {
       return;
     }
 
+    if (text === "/debug") {
+      if (!session) {
+        await telegramSender.send(chatId, "No hay sesión activa.");
+        return;
+      }
+      const { data: trips } = await admin.from("trips")
+        .select("id, origin, destination, status, created_at")
+        .eq("company_id", session.company_id)
+        .order("created_at", { ascending: false }).limit(5);
+      const { data: allTrips } = await admin.from("trips")
+        .select("id, status, company_id")
+        .limit(10);
+      const tripList = trips?.map(t => `• ${t.origin}→${t.destination} [${t.status}]`).join("\n") || "ninguno";
+      const allList = allTrips?.map(t => `• ${t.status} cid:...${t.company_id?.slice(-6)}`).join("\n") || "vacío";
+      await telegramSender.send(chatId,
+        `🔍 DEBUG\n\nSesión company_id: ...${session.company_id?.slice(-8)}\nuser_id: ...${session.user_id?.slice(-8)}\n\nViajes de esta empresa:\n${tripList}\n\nTodos los viajes en BD:\n${allList}`
+      );
+      return;
+    }
+
     if (!session) {
       if (!text.startsWith("/")) return;
       await telegramSender.send(chatId, "⚠️ No estás autenticado. Usa /start para comenzar.");
