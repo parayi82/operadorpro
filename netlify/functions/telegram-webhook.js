@@ -242,12 +242,18 @@ async function handleMessage(admin, message) {
       try {
         const { data: docs } = await admin.from("compliance_status_v")
           .select("*").eq("company_id", session.company_id).limit(5);
-        const docStatus = docs?.map((d) => {
-          const emoji = d.semaforo === "vencido" ? "🔴" : d.semaforo === "por_vencer" ? "🟡" : "🟢";
-          return `${emoji} ${d.doc_type}: ${d.expires_at}`;
-        }).join("\n") || "Sin documentos registrados.";
+        let docStatus;
+        if (docs && docs.length > 0) {
+          docStatus = docs.map((d) => {
+            const emoji = d.semaforo === "vencido" ? "🔴" : d.semaforo === "por_vencer" ? "🟡" : "🟢";
+            const label = d.doc_type.replace(/_/g, " ");
+            return `${emoji} ${label}: ${d.expires_at}`;
+          }).join("\n");
+        } else {
+          docStatus = "Sin documentos registrados.\n\n💡 Sube licencias, seguros y permisos desde la app web para monitorear aquí sus fechas de vencimiento.";
+        }
         const stateButtons = [["↩️ Menú Principal"]];
-        await telegramSender.send(chatId, `📋 Estado de Documentos\n\n${docStatus}\n\nMás detalles en la app web.`, stateButtons);
+        await telegramSender.send(chatId, `📋 Estado de Documentos\n\n${docStatus}`, stateButtons);
       } catch (e) {
         await telegramSender.send(chatId, "❌ Error al recuperar estado.", [["↩️ Menú Principal"]]);
       }
