@@ -54,6 +54,17 @@ async function resetConversation(stateId, admin) {
   return updateConversationState(stateId, "none", 0, {}, admin);
 }
 
+// Montos sugeridos por categoría de gasto
+const AMOUNTS_BY_CATEGORY = {
+  diesel: [["$400", "$600", "$800"], ["$1,000", "$1,500", "$2,000"], ["✏️ Otro monto"]],
+  caseta: [["$50", "$80", "$100"], ["$150", "$200", "$300"], ["✏️ Otro monto"]],
+  comida: [["$80", "$100", "$150"], ["$200", "$250", "$300"], ["✏️ Otro monto"]],
+  taller: [["$500", "$1,000", "$2,000"], ["$5,000", "$8,000"], ["✏️ Otro monto"]],
+  otro:   [["$100", "$200", "$500"], ["$1,000", "$2,000"], ["✏️ Otro monto"]]
+};
+
+const CAT_EMOJI = { diesel: "⛽", caseta: "🛣️", comida: "🍔", taller: "🔧", otro: "📦" };
+
 // ---------- FLUJO: INSPECCIÓN ----------
 async function handleInspectionFlow(chatId, text, session, state, admin) {
   const step = state.current_step;
@@ -61,14 +72,11 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
 
   // Paso 1: Seleccionar unidad con botones o typing
   if (step === 0) {
-    // Parse button format "T-001 (ABC-1234)" or just typed "T-001"
+    // Parsear formato botón "T-001 (ABC-1234)" o texto "T-001"
     let economicNumber = text.trim().toUpperCase();
     const match = economicNumber.match(/^([^\s]+)\s*\(/);
-    if (match) {
-      economicNumber = match[1]; // Extract economic number from button format
-    }
+    if (match) economicNumber = match[1];
 
-    // Buscar la unidad exacta
     const { data: vehicle, error } = await admin
       .from("vehicles")
       .select("id, economic_number, plate")
@@ -77,31 +85,15 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
       .single();
 
     if (error || !vehicle) {
-      // Si falla, mostrar vehículos disponibles como buttons
-      if (!ctx.showedVehiclesOnce) {
-        const { data: vehicles } = await admin
-          .from("vehicles")
-          .select("economic_number, plate")
-          .eq("company_id", session.company_id)
-          .limit(6);
-
-        if (vehicles && vehicles.length > 0) {
-          ctx.showedVehiclesOnce = true;
-          await updateConversationState(state.id, "inspection", 0, ctx, admin);
-          const buttons = vehicles.map(v => [`${v.economic_number} (${v.plate})`]);
-          await telegramSender.send(
-            chatId,
-            "Selecciona una unidad o escribe el numero economico:",
-            buttons
-          );
-          return;
-        }
+      const { data: vehicles } = await admin
+        .from("vehicles").select("economic_number, plate")
+        .eq("company_id", session.company_id).limit(6);
+      if (vehicles && vehicles.length > 0) {
+        const buttons = vehicles.map(v => [`${v.economic_number} (${v.plate})`]);
+        await telegramSender.send(chatId, "Selecciona tu unidad:", buttons);
+        return;
       }
-
-      await telegramSender.send(
-        chatId,
-        "No hay unidades disponibles. Configura una en la app web."
-      );
+      await telegramSender.send(chatId, "⚠️ No hay unidades. Configura en la app web.");
       await resetConversation(state.id, admin);
       return;
     }
@@ -109,13 +101,12 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
     ctx.vehicle_id = vehicle.id;
     ctx.vehicle_economic_number = vehicle.economic_number;
     ctx.photos = [];
-
     await updateConversationState(state.id, "inspection", 1, ctx, admin);
-
-    const buttons = [["📸 Foto"], ["✅ Listo"], ["⏭️ Sin fotos"]];
+    const buttons = [["✅ Listo"], ["⏭️ Sin fotos"]];
     await telegramSender.send(
       chatId,
-      `Unidad ${vehicle.economic_number} seleccionada.\n\nEnvia fotos: Frente, Llantas, Motor, Caja trasera, Odometro\n\n(Cuando termines: Listo)`
+      `🚛 Unidad <b>${vehicle.economic_number}</b> seleccionada.\n\nEnvía las fotos del vehículo:\n📸 Frente · Llantas · Motor · Caja trasera · Odómetro\n\nCuando termines toca <b>Listo</b>:`,
+      buttons
     );
     return;
   }
@@ -173,9 +164,22 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
 
   // Paso 3: Obtener kilometraje
   if (step === 2) {
-    const odometer = parseInt(text.trim(), 10);
+    // Manejar confirmación de odómetro por foto
+    if (text === "✅ Confirmar" && ctx._odometer_url) {
+      // El KM ya fue guardado en ctx.odometer_km por el handler de foto
+      // Solo avanzar al checklist
+      await updateConversationState(state.id, "inspection", 3, ctx, admin);
+      const buttons = [["✅ Sí", "❌ No"]];
+      await telegramSender.send(chatId, "Checklist de seguridad — 10 preguntas:\n\n<b>1/10: Frenos</b>", buttons);
+      return;
+    }
+    if (text === "❌ Otro número") {
+      await telegramSender.send(chatId, "Escribe el kilometraje:");
+      return;
+    }
+    const odometer = parseInt(text.replace(/[,.\s]/g, ""), 10);
     if (isNaN(odometer) || odometer < 0) {
-      await telegramSender.send(chatId, "Ingresa un numero valido:");
+      await telegramSender.send(chatId, "⚠️ Ingresa un número válido de kilómetros:");
       return;
     }
 
@@ -185,7 +189,7 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
     const buttons = [["✅ Sí", "❌ No"]];
     await telegramSender.send(
       chatId,
-      "Ahora responde el checklist. 10 items con botones Sí/No:\n\n1/10: Frenos",
+      `Odómetro: <b>${odometer.toLocaleString()} km</b> ✅\n\nChecklist de seguridad — 10 preguntas:\n\n<b>1/10: Frenos</b>`,
       buttons
     );
     return;
@@ -283,12 +287,12 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
             .insert(photos);
         }
 
-        await telegramSender.send(
-          chatId,
-          `Inspeccion completada (${ctx.photos.length} fotos).\n\nInspecciona otra unidad? Escribe /start para volver al menu.`
-        );
-
         await resetConversation(state.id, admin);
+        const menuButtons = [["🚗 Crear Viaje", "⛽ Reportar Gasto"], ["↩️ Menú Principal"]];
+        await telegramSender.send(chatId,
+          `✅ Inspección completada\n📸 ${ctx.photos?.length || 0} fotos registradas\n\n¿Qué deseas hacer?`,
+          menuButtons
+        );
       } catch (e) {
         logger.error("telegram.inspection_create_error", { error: e.message });
         await telegramSender.send(chatId, "Error al guardar inspeccion. Intenta de nuevo.");
@@ -316,87 +320,97 @@ async function handleTripFlow(chatId, text, session, state, admin) {
   const step = state.current_step;
   const ctx = state.context || {};
 
-  // Paso 1: Origen
+  // Paso 0: Origen
   if (step === 0) {
-    ctx.origin = text.trim();
-    await updateConversationState(state.id, "trip", 1, ctx, admin);
-    await telegramSender.send(chatId, "Escribe el destino:");
-    return;
-  }
-
-  // Paso 2: Destino
-  if (step === 1) {
-    ctx.destination = text.trim();
-    await updateConversationState(state.id, "trip", 2, ctx, admin);
-    await telegramSender.send(chatId, "Presupuesto para gastos (numero en pesos):");
-    return;
-  }
-
-  // Paso 3: Presupuesto
-  if (step === 2) {
-    const budget = parseFloat(text.trim());
-    if (isNaN(budget) || budget <= 0) {
-      await telegramSender.send(chatId, "Ingresa un numero valido:");
+    if (text === "✏️ Escribir ciudad") {
+      await telegramSender.send(chatId, "Escribe el nombre de la ciudad o dirección de origen:");
       return;
     }
+    ctx.origin = text.trim();
+    await updateConversationState(state.id, "trip", 1, ctx, admin);
+    // Sugerir destinos usados recientemente
+    const { data: recent } = await admin.from("trips")
+      .select("destination").eq("company_id", session.company_id)
+      .order("started_at", { ascending: false }).limit(12);
+    const uniqueDests = [...new Set((recent || []).map(t => t.destination))].slice(0, 4);
+    const buttons = uniqueDests.length > 0
+      ? [...uniqueDests.map(d => [d]), ["✏️ Escribir ciudad"]]
+      : null;
+    await telegramSender.send(chatId, `Origen: <b>${ctx.origin}</b> ✅\n\nDestino del viaje:`, buttons);
+    return;
+  }
 
+  // Paso 1: Destino
+  if (step === 1) {
+    if (text === "✏️ Escribir ciudad") {
+      await telegramSender.send(chatId, "Escribe el nombre de la ciudad o dirección de destino:");
+      return;
+    }
+    ctx.destination = text.trim();
+    await updateConversationState(state.id, "trip", 2, ctx, admin);
+    const buttons = [
+      ["$500", "$1,000", "$2,000"],
+      ["$5,000", "$10,000"],
+      ["✏️ Otro monto"]
+    ];
+    await telegramSender.send(chatId,
+      `Destino: <b>${ctx.destination}</b> ✅\n\nPresupuesto para gastos del viaje:`,
+      buttons
+    );
+    return;
+  }
+
+  // Paso 2: Presupuesto
+  if (step === 2) {
+    if (text === "✏️ Otro monto") {
+      await telegramSender.send(chatId, "Escribe el presupuesto en pesos (solo el número):");
+      return;
+    }
+    const cleaned = text.replace(/[$,\s]/g, "");
+    const budget = parseFloat(cleaned);
+    if (isNaN(budget) || budget <= 0) {
+      const buttons = [["$500", "$1,000", "$2,000"], ["$5,000", "$10,000"], ["✏️ Otro monto"]];
+      await telegramSender.send(chatId, "⚠️ Ingresa un monto válido:", buttons);
+      return;
+    }
     ctx.budget_amount = budget;
 
-    // Crear viaje
     try {
-      // Buscar primer chofer y unidad de la empresa
-      const { data: drivers } = await admin
-        .from("drivers")
-        .select("id")
-        .eq("company_id", session.company_id)
-        .limit(1);
+      const { data: drivers } = await admin.from("drivers")
+        .select("id").eq("company_id", session.company_id).limit(1);
+      const { data: vehicles } = await admin.from("vehicles")
+        .select("id").eq("company_id", session.company_id).limit(1);
 
-      const { data: vehicles } = await admin
-        .from("vehicles")
-        .select("id")
-        .eq("company_id", session.company_id)
-        .limit(1);
-
-      if (!drivers || drivers.length === 0 || !vehicles || vehicles.length === 0) {
-        await telegramSender.send(
-          chatId,
-          "Configura choferes y unidades en la app web para crear viajes."
+      if (!drivers?.length || !vehicles?.length) {
+        await telegramSender.send(chatId,
+          "⚠️ Configura choferes y unidades en la app web para crear viajes."
         );
         await resetConversation(state.id, admin);
         return;
       }
 
-      const driver = drivers[0];
-      const vehicle = vehicles[0];
-
-      const { data: trip, error } = await admin
-        .from("trips")
-        .insert({
-          company_id: session.company_id,
-          vehicle_id: vehicle.id,
-          driver_id: driver.id,
-          origin: ctx.origin,
-          destination: ctx.destination,
-          budget_amount: ctx.budget_amount,
-          status: "abierto",
-          started_at: new Date().toISOString()
-        })
-        .select()
-        .single();
+      const { data: trip, error } = await admin.from("trips").insert({
+        company_id: session.company_id,
+        vehicle_id: vehicles[0].id,
+        driver_id: drivers[0].id,
+        origin: ctx.origin,
+        destination: ctx.destination,
+        budget_amount: ctx.budget_amount,
+        status: "abierto",
+        started_at: new Date().toISOString()
+      }).select().single();
 
       if (error) throw error;
 
-      ctx.trip_id = trip.id;
-
-      await telegramSender.send(
-        chatId,
-        `Viaje iniciado: ${ctx.origin} -> ${ctx.destination}\n\nPresupuesto: $${ctx.budget_amount} MXN\n\nAhora puedes reportar gastos. /start para menu.`
-      );
-
       await resetConversation(state.id, admin);
+      const menuButtons = [["⛽ Reportar Gasto", "↩️ Menú Principal"]];
+      await telegramSender.send(chatId,
+        `✅ Viaje iniciado\n🚗 <b>${ctx.origin} → ${ctx.destination}</b>\n💰 Presupuesto: $${ctx.budget_amount.toLocaleString()} MXN\n\n¿Qué deseas hacer?`,
+        menuButtons
+      );
     } catch (e) {
       logger.error("telegram.trip_create_error", { error: e.message });
-      await telegramSender.send(chatId, "Error al crear viaje. Intenta de nuevo.");
+      await telegramSender.send(chatId, `❌ Error al crear viaje: ${e.message}`);
       await resetConversation(state.id, admin);
     }
     return;
@@ -408,207 +422,155 @@ async function handleExpenseFlow(chatId, text, session, state, admin) {
   const step = state.current_step;
   const ctx = state.context || {};
 
-  // Paso 1: Seleccionar viaje con botones o typing
+  // Paso 0: Seleccionar viaje con botones
   if (step === 0) {
     const buttonText = text.trim();
-
-    // First try to find by trip ID (if typed)
-    let tripQuery = admin
-      .from("trips")
-      .select("id, origin, destination, status")
+    const { data: trips } = await admin
+      .from("trips").select("id, origin, destination, status")
       .eq("company_id", session.company_id);
 
-    const { data: trips, error } = await tripQuery;
-
     let trip = null;
-    if (trips && trips.length > 0) {
-      // Try exact ID match first
+    if (trips?.length > 0) {
       trip = trips.find(t => t.id === buttonText);
-
-      // If not found, try button format match "Origin → Destination"
-      if (!trip && buttonText.includes("→")) {
+      if (!trip && buttonText.includes("→"))
         trip = trips.find(t => `${t.origin} → ${t.destination}` === buttonText);
-      }
     }
 
     if (!trip) {
-      // Si falla, mostrar viajes recientes como buttons
-      if (!ctx.showedTripsOnce) {
-        const { data: recentTrips } = await admin
-          .from("trips")
-          .select("id, origin, destination")
-          .eq("company_id", session.company_id)
-          .eq("status", "abierto")
-          .order("started_at", { ascending: false })
-          .limit(4);
-
-        if (recentTrips && recentTrips.length > 0) {
-          ctx.showedTripsOnce = true;
-          await updateConversationState(state.id, "expense", 0, ctx, admin);
-          const buttons = recentTrips.map(t => [`${t.origin} → ${t.destination}`]);
-          await telegramSender.send(
-            chatId,
-            "Selecciona un viaje abierto o escribe el ID:",
-            buttons
-          );
-          return;
-        }
+      const { data: openTrips } = await admin.from("trips")
+        .select("id, origin, destination").eq("company_id", session.company_id)
+        .eq("status", "abierto").order("started_at", { ascending: false }).limit(4);
+      if (openTrips?.length > 0) {
+        const buttons = openTrips.map(t => [`${t.origin} → ${t.destination}`]);
+        await telegramSender.send(chatId, "Selecciona el viaje:", buttons);
+        return;
       }
-
-      await telegramSender.send(
-        chatId,
-        "No hay viajes abiertos. Crea uno desde /start"
-      );
+      const noTripButtons = [["🚗 Crear Viaje", "↩️ Menú Principal"]];
+      await telegramSender.send(chatId, "No hay viajes abiertos. Crea uno primero.", noTripButtons);
       await resetConversation(state.id, admin);
       return;
     }
 
     if (trip.status !== "abierto") {
-      await telegramSender.send(chatId, "Este viaje ya esta cerrado.");
+      await telegramSender.send(chatId, "⚠️ Ese viaje ya está cerrado.");
       await resetConversation(state.id, admin);
       return;
     }
 
     ctx.trip_id = trip.id;
     await updateConversationState(state.id, "expense", 1, ctx, admin);
-
-    const buttons = [
+    const catButtons = [
       ["⛽ Diesel", "🛣️ Caseta"],
       ["🍔 Comida", "🔧 Taller"],
       ["📦 Otro"]
     ];
-    await telegramSender.send(chatId, "Elige la categoria del gasto:", buttons);
-    return;
-  }
-
-  // Paso 2: Categoría con botones
-  if (step === 1) {
-    const categoryMap = {
-      "⛽ Diesel": "diesel",
-      "🛣️ Caseta": "caseta",
-      "🍔 Comida": "comida",
-      "🔧 Taller": "taller",
-      "📦 Otro": "otro",
-      // Support direct text input too
-      "diesel": "diesel",
-      "caseta": "caseta",
-      "comida": "comida",
-      "taller": "taller",
-      "otro": "otro"
-    };
-
-    const inputText = text.trim();
-    const category = categoryMap[inputText] || categoryMap[inputText.toLowerCase()];
-
-    const validCategories = ["diesel", "caseta", "comida", "taller", "otro"];
-    if (!validCategories.includes(category)) {
-      const buttons = [
-        ["⛽ Diesel", "🛣️ Caseta"],
-        ["🍔 Comida", "🔧 Taller"],
-        ["📦 Otro"]
-      ];
-      await telegramSender.send(chatId, "Elige la categoria del gasto:", buttons);
-      return;
-    }
-
-    ctx.category = category;
-    await updateConversationState(state.id, "expense", 2, ctx, admin);
-    await telegramSender.send(chatId, "Monto del gasto (numero en pesos):");
-    return;
-  }
-
-  // Paso 3: Monto
-  if (step === 2) {
-    const amount = parseFloat(text.trim());
-    if (isNaN(amount) || amount <= 0) {
-      await telegramSender.send(chatId, "Ingresa un numero valido:");
-      return;
-    }
-
-    ctx.amount = amount;
-    await updateConversationState(state.id, "expense", 3, ctx, admin);
-    await telegramSender.send(
-      chatId,
-      "Sube una foto del recibo (o escribe 'sin foto' para omitir):"
+    await telegramSender.send(chatId,
+      `Viaje: <b>${trip.origin} → ${trip.destination}</b>\n\nCategoría del gasto:`,
+      catButtons
     );
     return;
   }
 
-  // Paso 4: Foto del recibo (opcional)
+  // Paso 1: Categoría con botones
+  if (step === 1) {
+    const categoryMap = {
+      "⛽ Diesel": "diesel", "🛣️ Caseta": "caseta",
+      "🍔 Comida": "comida", "🔧 Taller": "taller", "📦 Otro": "otro",
+      "diesel": "diesel", "caseta": "caseta", "comida": "comida",
+      "taller": "taller", "otro": "otro"
+    };
+    const category = categoryMap[text.trim()] || categoryMap[text.trim().toLowerCase()];
+    if (!["diesel", "caseta", "comida", "taller", "otro"].includes(category)) {
+      const buttons = [["⛽ Diesel", "🛣️ Caseta"], ["🍔 Comida", "🔧 Taller"], ["📦 Otro"]];
+      await telegramSender.send(chatId, "Selecciona la categoría:", buttons);
+      return;
+    }
+    ctx.category = category;
+    await updateConversationState(state.id, "expense", 2, ctx, admin);
+    const amountButtons = AMOUNTS_BY_CATEGORY[category] || AMOUNTS_BY_CATEGORY.otro;
+    await telegramSender.send(chatId,
+      `${CAT_EMOJI[category]} <b>${category.toUpperCase()}</b>\n\nMonto del gasto:`,
+      amountButtons
+    );
+    return;
+  }
+
+  // Paso 2: Monto con botones o texto
+  if (step === 2) {
+    if (text === "✏️ Otro monto") {
+      await telegramSender.send(chatId, "Escribe el monto en pesos (solo el número):");
+      return;
+    }
+    const amount = parseFloat(text.replace(/[$,\s]/g, ""));
+    if (isNaN(amount) || amount <= 0) {
+      const amountButtons = AMOUNTS_BY_CATEGORY[ctx.category] || AMOUNTS_BY_CATEGORY.otro;
+      await telegramSender.send(chatId, "⚠️ Ingresa un monto válido:", amountButtons);
+      return;
+    }
+    ctx.amount = amount;
+    await updateConversationState(state.id, "expense", 3, ctx, admin);
+    const buttons = [["📷 Sin recibo"]];
+    await telegramSender.send(chatId,
+      `Monto: <b>$${amount.toLocaleString()} MXN</b> ✅\n\nEnvía la foto del recibo o ticket:`,
+      buttons
+    );
+    return;
+  }
+
+  // Paso 3: Foto del recibo (opcional)
   if (step === 3) {
-    // Esperar foto o "sin foto" para avanzar
-    // Las fotos se procesan via handlePhotoMessage en telegram-poller.js
-    // que auto-avanza el flujo cuando se recibe una foto
-
-    if (text.toLowerCase() === "sin foto") {
-      // Crear gasto sin foto — receipt_url requerido; usamos placeholder
+    if (text.toLowerCase() === "sin foto" || text === "📷 Sin recibo") {
       try {
-        const { data: expense, error } = await admin
-          .from("expenses")
-          .insert({
-            trip_id: ctx.trip_id,
-            category: ctx.category,
-            amount: ctx.amount,
-            receipt_url: "sin_recibo",
-            expense_date: new Date().toISOString().split("T")[0],
-            review_status: "pendiente",
-            created_by: session.user_id
-          })
-          .select()
-          .single();
-
+        const { error } = await admin.from("expenses").insert({
+          trip_id: ctx.trip_id,
+          category: ctx.category,
+          amount: ctx.amount,
+          receipt_url: "sin_recibo",
+          expense_date: new Date().toISOString().split("T")[0],
+          review_status: "pendiente",
+          created_by: session.user_id
+        });
         if (error) throw error;
-
-        await telegramSender.send(
-          chatId,
-          `Gasto registrado: ${ctx.category.toUpperCase()} $${ctx.amount} MXN\n\nReporta otro gasto? /start para menu.`
-        );
-
         await resetConversation(state.id, admin);
+        const menuButtons = [["⛽ Reportar Gasto", "↩️ Menú Principal"]];
+        await telegramSender.send(chatId,
+          `✅ Gasto registrado\n${CAT_EMOJI[ctx.category]} <b>${ctx.category.toUpperCase()}</b> — $${ctx.amount.toLocaleString()} MXN`,
+          menuButtons
+        );
       } catch (e) {
         logger.error("telegram.expense_create_error", { error: e.message });
-        await telegramSender.send(chatId, `Error al guardar gasto: ${e.message}`);
+        await telegramSender.send(chatId, `❌ Error al guardar gasto: ${e.message}`);
         await resetConversation(state.id, admin);
       }
       return;
     }
-
-    // Esperando foto
-    await telegramSender.send(
-      chatId,
-      `Envia una foto del recibo o escribe 'sin foto':`
-    );
+    const buttons = [["📷 Sin recibo"]];
+    await telegramSender.send(chatId, "Envía la foto del recibo o toca <b>Sin recibo</b>:", buttons);
     return;
   }
 
-  // Paso 5: Crear gasto con foto (llamado después de foto cargada)
+  // Paso 4: Crear gasto con foto (llamado después de foto cargada)
   if (step === 4) {
     try {
-      const { data: expense, error } = await admin
-        .from("expenses")
-        .insert({
-          trip_id: ctx.trip_id,
-          category: ctx.category,
-          amount: ctx.amount,
-          receipt_url: ctx.receipt_url || "sin_recibo",
-          expense_date: new Date().toISOString().split("T")[0],
-          review_status: "pendiente",
-          created_by: session.user_id
-        })
-        .select()
-        .single();
-
+      const { error } = await admin.from("expenses").insert({
+        trip_id: ctx.trip_id,
+        category: ctx.category,
+        amount: ctx.amount,
+        receipt_url: ctx.receipt_url || "sin_recibo",
+        expense_date: new Date().toISOString().split("T")[0],
+        review_status: "pendiente",
+        created_by: session.user_id
+      });
       if (error) throw error;
-
-      await telegramSender.send(
-        chatId,
-        `Gasto registrado: ${ctx.category.toUpperCase()} $${ctx.amount} MXN\n\nReporta otro gasto? /start para menu.`
-      );
-
       await resetConversation(state.id, admin);
+      const menuButtons = [["⛽ Reportar Gasto", "↩️ Menú Principal"]];
+      await telegramSender.send(chatId,
+        `✅ Gasto registrado\n${CAT_EMOJI[ctx.category]} <b>${ctx.category.toUpperCase()}</b> — $${ctx.amount.toLocaleString()} MXN`,
+        menuButtons
+      );
     } catch (e) {
       logger.error("telegram.expense_create_error", { error: e.message });
-      await telegramSender.send(chatId, `Error al guardar gasto: ${e.message}`);
+      await telegramSender.send(chatId, `❌ Error al guardar gasto: ${e.message}`);
       await resetConversation(state.id, admin);
     }
     return;
@@ -645,8 +607,11 @@ async function handlePendingExpenseReply(chatId, text, session, state, admin) {
         created_by: session.user_id
       });
       await updateConversationState(state.id, "none", 0, {}, admin);
+      const cat = pending.category || "otro";
+      const menuButtons = [["⛽ Reportar Gasto", "↩️ Menú Principal"]];
       await telegramSender.send(chatId,
-        `✅ Gasto registrado:\n${getCatEmoji(pending.category)} ${(pending.category || "otro").toUpperCase()} — $${pending.amount} MXN`
+        `✅ Gasto registrado\n${getCatEmoji(cat)} <b>${cat.toUpperCase()}</b> — $${pending.amount} MXN`,
+        menuButtons
       );
     } catch (e) {
       logger.error("telegram.auto_expense_save_error", { error: e.message });
