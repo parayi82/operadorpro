@@ -1,11 +1,26 @@
 // ============================================================
 // ocr.js — Adaptador plegable de lectura de tickets (OCR).
+// Proveedor primario: Claude Vision (ANTHROPIC_API_KEY).
+// Fallback: Google Vision (GOOGLE_VISION_API_KEY).
 // Sin credenciales: el gasto se guarda igual, marcado para revisión
 // manual — el flujo de captura nunca depende de la disponibilidad
 // de un proveedor externo.
 // ============================================================
 
 const logger = require("./logger");
+const { analyzeReceiptWithClaude } = require("./vision");
+
+async function extractWithClaude(imageUrl) {
+  const result = await analyzeReceiptWithClaude(imageUrl);
+  if (!result || !result.is_receipt) return null;
+  return {
+    raw_text: null,
+    amount: result.amount || null,
+    category: result.category || null,
+    rfc: null,
+    confidence: result.amount ? 0.9 : 0.5
+  };
+}
 
 async function extractWithGoogleVision(imageUrl) {
   const apiKey = process.env.GOOGLE_VISION_API_KEY;
@@ -20,7 +35,6 @@ async function extractWithGoogleVision(imageUrl) {
   const data = await res.json();
   const text = data.responses?.[0]?.fullTextAnnotation?.text || "";
 
-  // Heurística simple de extracción; el dueño siempre puede corregir en el panel.
   const amountMatch = text.match(/\$?\s?(\d{1,6}(?:[.,]\d{2})?)/);
   const rfcMatch = text.match(/\b([A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3})\b/i);
 
@@ -36,17 +50,28 @@ async function extractWithGoogleVision(imageUrl) {
  * @returns {{raw: object|null, confidence: number|null, needsManualReview: boolean}}
  */
 async function extractReceipt(imageUrl) {
-  if (!process.env.GOOGLE_VISION_API_KEY) {
-    logger.info("ocr.noop_no_provider", { imageUrl });
-    return { raw: null, confidence: null, needsManualReview: true };
+  // 1. Claude Vision (mejor en tickets mexicanos)
+  if (process.env.ANTHROPIC_API_KEY) {
+    try {
+      const result = await extractWithClaude(imageUrl);
+      if (result) return { raw: result, confidence: result.confidence, needsManualReview: false };
+    } catch (e) {
+      logger.error("ocr.claude_failed", { error: e.message });
+    }
   }
-  try {
-    const result = await extractWithGoogleVision(imageUrl);
-    return { raw: result, confidence: result.confidence, needsManualReview: result.confidence < 0.5 };
-  } catch (e) {
-    logger.error("ocr.extract_failed", { error: e.message });
-    return { raw: null, confidence: null, needsManualReview: true };
+
+  // 2. Google Vision fallback
+  if (process.env.GOOGLE_VISION_API_KEY) {
+    try {
+      const result = await extractWithGoogleVision(imageUrl);
+      return { raw: result, confidence: result.confidence, needsManualReview: result.confidence < 0.5 };
+    } catch (e) {
+      logger.error("ocr.google_failed", { error: e.message });
+    }
   }
+
+  logger.info("ocr.noop_no_provider", { imageUrl });
+  return { raw: null, confidence: null, needsManualReview: true };
 }
 
 module.exports = { extractReceipt };
