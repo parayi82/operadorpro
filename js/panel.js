@@ -98,6 +98,7 @@ async function callFn(name, { method = "GET", body, query } = {}) {
 
 // ---------- Subida de archivos a Storage (buckets privados) ----------
 async function uploadToBucket(bucket, file) {
+  if (!state.companyId) throw new Error("No hay empresa activa");
   const path = `${state.companyId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_")}`;
   const { error } = await sb.storage.from(bucket).upload(path, file, { upsert: false });
   if (error) throw error;
@@ -354,7 +355,7 @@ function renderDashboard() {
       <span class="badge" style="background:var(--amarillo);color:var(--asfalto)">⚖️</span>
       <h3 style="color:#fff">Asesoría legal incluida</h3>
       <p style="color:#E4EFE9">Consulta laboral, de tránsito o de percances con un abogado real. Respuesta en menos de 24 horas hábiles. Hasta 3 consultas al mes incluidas en tu plan.</p>
-      <a class="btn btn-primary" href="#/perfil">Contactar abogado →</a>
+      <button class="btn btn-primary" id="btn-legal-contact">Contactar abogado →</button>
     </div>` : isSubscribed() ? `
     <div class="locked-banner" style="margin-bottom:26px">
       <div>⚖️ <strong>Asesoría legal:</strong> el plan Protegido incluye consultas con un abogado real (laboral, tránsito, percances). Cambia de plan desde <a href="#/perfil" style="color:var(--amarillo)">tu perfil</a> → Administrar suscripción.</div>
@@ -397,6 +398,14 @@ function renderDashboard() {
     ${fleetCard}`;
 
   $app.querySelectorAll("[data-plan]").forEach((b) => (b.onclick = () => startCheckout(b.dataset.plan)));
+
+  const legalBtn = document.getElementById("btn-legal-contact");
+  if (legalBtn) {
+    legalBtn.onclick = () => {
+      const txt = encodeURIComponent("Hola, soy operador con plan Protegido de OperadorPro y necesito asesoría legal.");
+      window.open(`https://wa.me/${CONFIG.LEGAL_WA || ""}?text=${txt}`, "_blank");
+    };
+  }
 }
 
 // ---------- Vista: Curso ----------
@@ -1120,8 +1129,15 @@ async function renderFlota() {
 async function renderViajes() {
   setNav(true);
   await loadCompanyData();
-  const vehicleOptions = state.vehicles.map((v) => `<option value="${v.id}">${esc(v.economic_number)}</option>`).join("");
-  const driverOptions = state.drivers.map((d) => `<option value="${d.id}">${esc(d.full_name)}</option>`).join("");
+  const vehicleOptions = state.vehicles.length
+    ? state.vehicles.map((v) => `<option value="${v.id}">${esc(v.economic_number)}</option>`).join("")
+    : `<option value="">— Registra unidades en Flota primero —</option>`;
+  const driverOptions = state.drivers.length
+    ? state.drivers.map((d) => `<option value="${d.id}">${esc(d.full_name)}</option>`).join("")
+    : `<option value="">— Registra choferes en Flota primero —</option>`;
+  const openTripOptions = state.trips.filter((t) => t.status === "abierto")
+    .map((t) => `<option value="${t.id}">${esc(t.origin)} → ${esc(t.destination)}</option>`).join("")
+    || `<option value="">— Sin viajes abiertos —</option>`;
 
   const tripRows = state.trips.map((t) => `
     <tr>
@@ -1158,7 +1174,7 @@ async function renderViajes() {
       <div class="fleet-card" style="margin-top:20px">
         <h3>Registrar gasto (ticket)</h3>
         <label>Viaje</label>
-        <select id="e-trip">${state.trips.filter((t) => t.status === "abierto").map((t) => `<option value="${t.id}">${esc(t.origin)} → ${esc(t.destination)}</option>`).join("")}</select>
+        <select id="e-trip">${openTripOptions}</select>
         <label>Categoría</label>
         <select id="e-category"><option value="diesel">Diésel</option><option value="caseta">Caseta</option><option value="comida">Comida</option><option value="taller">Taller</option><option value="otro">Otro</option></select>
         <label>Monto (MXN)</label><input id="e-amount" type="number" min="0.01" step="0.01">
@@ -1181,6 +1197,12 @@ async function renderViajes() {
 
   document.getElementById("t-submit").onclick = async () => {
     const msg = document.getElementById("t-msg");
+    if (!document.getElementById("t-vehicle").value) {
+      msg.textContent = "Primero registra una unidad en la sección Flota."; msg.className = "form-msg error"; return;
+    }
+    if (!document.getElementById("t-driver").value) {
+      msg.textContent = "Primero registra un chofer en la sección Flota."; msg.className = "form-msg error"; return;
+    }
     try {
       msg.textContent = "Guardando…";
       await callFn("fleet-create-trip", {
@@ -1210,6 +1232,9 @@ async function renderViajes() {
 
   document.getElementById("e-submit").onclick = async () => {
     const msg = document.getElementById("e-msg");
+    if (!document.getElementById("e-trip").value) {
+      msg.textContent = "No hay viajes abiertos. Abre un viaje primero."; msg.className = "form-msg error"; return;
+    }
     const file = _receiptFile;
     if (!file) { msg.textContent = "Adjunta la foto del ticket"; msg.className = "form-msg error"; return; }
     try {
@@ -1231,8 +1256,16 @@ async function renderViajes() {
 
   $app.querySelectorAll("[data-close]").forEach((btn) => {
     btn.onclick = async () => {
-      await callFn("fleet-close-trip", { method: "POST", body: { trip_id: btn.dataset.close } });
-      renderViajes();
+      const orig = btn.textContent;
+      try {
+        btn.disabled = true; btn.textContent = "Cerrando…";
+        await callFn("fleet-close-trip", { method: "POST", body: { trip_id: btn.dataset.close } });
+        renderViajes();
+      } catch (e) {
+        btn.disabled = false; btn.textContent = orig;
+        document.getElementById("t-msg").textContent = "Error al cerrar viaje: " + e.message;
+        document.getElementById("t-msg").className = "form-msg error";
+      }
     };
   });
 }
@@ -1345,7 +1378,9 @@ async function renderInspecciones() {
 async function renderCobranza() {
   setNav(true);
   await loadCompanyData();
-  const clientOptions = state.clients.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
+  const clientOptions = state.clients.length
+    ? state.clients.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join("")
+    : `<option value="">— Agrega un cliente primero —</option>`;
 
   const invoiceRows = state.invoices.map((i) => `
     <tr>
@@ -1405,6 +1440,9 @@ async function renderCobranza() {
 
   document.getElementById("f-submit").onclick = async () => {
     const msg = document.getElementById("f-msg");
+    if (!document.getElementById("f-client").value) {
+      msg.textContent = "Agrega un cliente primero."; msg.className = "form-msg error"; return;
+    }
     try {
       const file = document.getElementById("f-pod").files[0];
       let podUrl;
@@ -1427,17 +1465,30 @@ async function renderCobranza() {
 
   $app.querySelectorAll("[data-pay]").forEach((btn) => {
     btn.onclick = async () => {
-      await callFn("fleet-register-payment", { method: "POST", body: { invoice_id: btn.dataset.pay } });
-      renderCobranza();
+      const orig = btn.textContent;
+      try {
+        btn.disabled = true; btn.textContent = "Guardando…";
+        await callFn("fleet-register-payment", { method: "POST", body: { invoice_id: btn.dataset.pay } });
+        renderCobranza();
+      } catch (e) {
+        btn.disabled = false; btn.textContent = orig;
+        document.getElementById("f-msg").textContent = "Error al registrar pago: " + e.message;
+        document.getElementById("f-msg").className = "form-msg error";
+      }
     };
   });
 }
 
 // ---------- Arranque ----------
+// Bandera compartida para que el IIFE y onAuthStateChange no dupliquen la
+// carga de datos cuando ambos se resuelven para el mismo usuario.
+let _dataLoaded = false;
+
 document.getElementById("logout-link").addEventListener("click", async (e) => {
   e.preventDefault();
   await sb.auth.signOut();
   state.session = null;
+  _dataLoaded = false;
   resetUserState();
   location.hash = "#/login";
 });
@@ -1445,16 +1496,15 @@ document.getElementById("logout-link").addEventListener("click", async (e) => {
 sb.auth.onAuthStateChange(async (_event, session) => {
   const wasLogged = !!state.session;
   state.session = session;
-  if (session && !wasLogged) {
+  if (session && !wasLogged && !_dataLoaded) {
+    _dataLoaded = true;
     try {
       await loadAllUserData();
     } catch (e) {
-      // Un fallo cargando datos secundarios (cursos, flota, etc.) no
-      // significa que la sesión sea inválida — nunca se debe deducir eso.
       console.error("onAuthStateChange: loadAllUserData falló", e);
     }
   }
-  if (!session) resetUserState();
+  if (!session) { resetUserState(); _dataLoaded = false; }
   router();
 });
 
@@ -1464,7 +1514,8 @@ sb.auth.onAuthStateChange(async (_event, session) => {
     const timeout = new Promise((resolve) => setTimeout(() => resolve({ data: { session: null }, timedOut: true }), 4000));
     const result = await Promise.race([sessionPromise, timeout]);
     state.session = result?.data?.session || null;
-    if (state.session) {
+    if (state.session && !_dataLoaded) {
+      _dataLoaded = true;
       try {
         await loadAllUserData();
       } catch (e) {
