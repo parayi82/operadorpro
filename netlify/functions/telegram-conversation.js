@@ -541,7 +541,7 @@ async function handleExpenseFlow(chatId, text, session, state, admin) {
     // que auto-avanza el flujo cuando se recibe una foto
 
     if (text.toLowerCase() === "sin foto") {
-      // Crear gasto sin foto
+      // Crear gasto sin foto — receipt_url requerido; usamos placeholder
       try {
         const { data: expense, error } = await admin
           .from("expenses")
@@ -549,6 +549,7 @@ async function handleExpenseFlow(chatId, text, session, state, admin) {
             trip_id: ctx.trip_id,
             category: ctx.category,
             amount: ctx.amount,
+            receipt_url: "sin_recibo",
             expense_date: new Date().toISOString().split("T")[0],
             review_status: "pendiente",
             created_by: session.user_id
@@ -566,7 +567,7 @@ async function handleExpenseFlow(chatId, text, session, state, admin) {
         await resetConversation(state.id, admin);
       } catch (e) {
         logger.error("telegram.expense_create_error", { error: e.message });
-        await telegramSender.send(chatId, "Error al guardar gasto. Intenta de nuevo.");
+        await telegramSender.send(chatId, `Error al guardar gasto: ${e.message}`);
         await resetConversation(state.id, admin);
       }
       return;
@@ -589,7 +590,7 @@ async function handleExpenseFlow(chatId, text, session, state, admin) {
           trip_id: ctx.trip_id,
           category: ctx.category,
           amount: ctx.amount,
-          receipt_url: ctx.receipt_url || null,
+          receipt_url: ctx.receipt_url || "sin_recibo",
           expense_date: new Date().toISOString().split("T")[0],
           review_status: "pendiente",
           created_by: session.user_id
@@ -607,7 +608,7 @@ async function handleExpenseFlow(chatId, text, session, state, admin) {
       await resetConversation(state.id, admin);
     } catch (e) {
       logger.error("telegram.expense_create_error", { error: e.message });
-      await telegramSender.send(chatId, "Error al guardar gasto. Intenta de nuevo.");
+      await telegramSender.send(chatId, `Error al guardar gasto: ${e.message}`);
       await resetConversation(state.id, admin);
     }
     return;
@@ -638,9 +639,9 @@ async function handlePendingExpenseReply(chatId, text, session, state, admin) {
         trip_id: pending.trip_id,
         category: pending.category || "otro",
         amount: pending.amount,
-        receipt_url: pending.receipt_url || null,
+        receipt_url: pending.receipt_url || "sin_recibo",
         expense_date: new Date().toISOString().split("T")[0],
-        review_status: "ok",
+        review_status: "conciliado",
         created_by: session.user_id
       });
       await updateConversationState(state.id, "none", 0, {}, admin);
