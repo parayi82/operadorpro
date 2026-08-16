@@ -63,6 +63,6 @@ self.addEventListener("fetch", (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
         return res;
       })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match("/fleet.html")))
+      .catch(() => caches.match(event.request).then((cached) => cached || caches.match("/app.html")))
   );
 });

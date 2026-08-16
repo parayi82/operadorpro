@@ -39,6 +39,18 @@ table.fleet-table { width: 100%; min-width: 480px; border-collapse: collapse; ba
 table.fleet-table th, table.fleet-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--niebla); font-size: 14px; white-space: nowrap; }
 table.fleet-table th { background: var(--asfalto); color: var(--blanco); text-transform: uppercase; font-size: 12px; letter-spacing: .04em; }
 
+.btn-secondary {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 15px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .03em; text-align: center;
+  padding: 7px 16px; border-radius: 8px; border: 2px solid var(--verde);
+  background: transparent; color: var(--verde); cursor: pointer;
+  transition: background .12s ease, color .12s ease;
+}
+.btn-secondary:hover { background: var(--verde); color: var(--blanco); }
+.btn-secondary:disabled { opacity: .5; cursor: not-allowed; }
+
 .checklist-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--niebla); }
 .checklist-item label { font-weight: 600; }
 
