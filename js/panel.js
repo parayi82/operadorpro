@@ -1162,7 +1162,18 @@ async function renderViajes() {
         <label>Categoría</label>
         <select id="e-category"><option value="diesel">Diésel</option><option value="caseta">Caseta</option><option value="comida">Comida</option><option value="taller">Taller</option><option value="otro">Otro</option></select>
         <label>Monto (MXN)</label><input id="e-amount" type="number" min="0.01" step="0.01">
-        <label>Foto del ticket</label><input id="e-file" type="file" accept="image/*">
+        <label>Foto del ticket</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0;align-items:center">
+          <label style="display:inline-flex;align-items:center;gap:6px;background:var(--asfalto);color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:14px">
+            📷 Cámara
+            <input id="e-file-cam" type="file" accept="image/*" capture="environment" style="display:none">
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;background:#f0f0f0;color:#333;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:14px">
+            🖼️ Galería
+            <input id="e-file-gal" type="file" accept="image/*" style="display:none">
+          </label>
+          <span id="e-file-name" style="font-size:13px;color:var(--gris-texto)">Sin foto</span>
+        </div>
         <div class="form-msg" id="e-msg"></div>
         <button id="e-submit" class="btn-primary">Guardar gasto</button>
       </div>
@@ -1187,9 +1198,19 @@ async function renderViajes() {
     } catch (e) { msg.textContent = e.message; msg.className = "form-msg error"; }
   };
 
+  let _receiptFile = null;
+  ["e-file-cam", "e-file-gal"].forEach((id) => {
+    document.getElementById(id).onchange = function () {
+      if (this.files[0]) {
+        _receiptFile = this.files[0];
+        document.getElementById("e-file-name").textContent = this.files[0].name;
+      }
+    };
+  });
+
   document.getElementById("e-submit").onclick = async () => {
     const msg = document.getElementById("e-msg");
-    const file = document.getElementById("e-file").files[0];
+    const file = _receiptFile;
     if (!file) { msg.textContent = "Adjunta la foto del ticket"; msg.className = "form-msg error"; return; }
     try {
       msg.textContent = "Subiendo ticket…";
@@ -1241,7 +1262,19 @@ async function renderInspecciones() {
 
         <h4 style="margin-top:14px">Fotos obligatorias</h4>
         <div class="photo-inputs">
-          ${PHOTO_TYPES.map(([key, label]) => `<div><label>${label}</label><input type="file" accept="image/*" data-photo="${key}"></div>`).join("")}
+          ${PHOTO_TYPES.map(([key, label]) => `
+          <div style="margin-bottom:10px">
+            <label style="display:block;margin-bottom:4px;font-size:14px">${label}</label>
+            <label style="display:inline-flex;align-items:center;gap:6px;background:var(--asfalto);color:#fff;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:13px">
+              📷 Cámara
+              <input type="file" accept="image/*" capture="environment" style="display:none" data-photo="${key}">
+            </label>
+            <label style="display:inline-flex;align-items:center;gap:6px;background:#f0f0f0;color:#333;padding:7px 12px;border-radius:8px;cursor:pointer;font-size:13px;margin-left:6px">
+              🖼️ Galería
+              <input type="file" accept="image/*" style="display:none" data-photo-gal="${key}">
+            </label>
+            <span id="photo-name-${key}" style="display:block;font-size:12px;color:var(--gris-texto);margin-top:3px">Sin foto</span>
+          </div>`).join("")}
         </div>
 
         <h4 style="margin-top:14px">Checklist de 10 puntos</h4>
@@ -1256,14 +1289,29 @@ async function renderInspecciones() {
       </div>
     </div>`;
 
+  // Sincronizar inputs de galería → mismo data-photo para que el submit los lea
+  PHOTO_TYPES.forEach(([key]) => {
+    const galInput = document.querySelector(`[data-photo-gal="${key}"]`);
+    const nameEl = document.getElementById(`photo-name-${key}`);
+    galInput.onchange = function () {
+      if (this.files[0]) {
+        document.querySelector(`[data-photo="${key}"]`).__galFile = this.files[0];
+        nameEl.textContent = this.files[0].name;
+      }
+    };
+    document.querySelector(`[data-photo="${key}"]`).onchange = function () {
+      if (this.files[0]) nameEl.textContent = this.files[0].name;
+    };
+  });
+
   document.getElementById("i-submit").onclick = async () => {
     const msg = document.getElementById("i-msg");
     try {
       msg.textContent = "Subiendo evidencia fotográfica…";
       const photos = [];
       for (const [key] of PHOTO_TYPES) {
-        const input = document.querySelector(`[data-photo="${key}"]`);
-        const file = input.files[0];
+        const camInput = document.querySelector(`[data-photo="${key}"]`);
+        const file = camInput.files[0] || camInput.__galFile;
         if (!file) throw new Error(`Falta la foto: ${key}`);
         const url = await uploadToBucket("trip-evidence", file);
         photos.push({ photo_type: key, url });

@@ -223,7 +223,14 @@ function renderChecklist() {
       <div class="photo-section" id="photo-${idx}">
         <h4>📷 Foto (requerida si hay falla)</h4>
         <div class="photo-input">
-          <input type="file" accept="image/*" capture="camera" onchange="handlePhotoCapture(${idx}, this)">
+          <label style="display:inline-flex;align-items:center;gap:6px;background:#1a1a2e;color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:14px">
+            📷 Tomar foto
+            <input type="file" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoCapture(${idx}, this)">
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;background:#f0f0f0;color:#333;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:14px;margin-left:6px">
+            🖼️ Galería
+            <input type="file" accept="image/*" style="display:none" onchange="handlePhotoCapture(${idx}, this)">
+          </label>
         </div>
         <img id="photo-preview-${idx}" class="photo-preview" style="display:none;">
       </div>
