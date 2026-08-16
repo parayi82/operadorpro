@@ -85,6 +85,42 @@ async function handleMessage(admin, message) {
       "↩️ Menú Principal", "↩️ Menu Principal"
     ].includes(text);
 
+    // Resolución de conflicto de viaje duplicado
+    if (convState?.context?.trip_conflict && !isMenuButton) {
+      const conflictTrip = convState.context.trip_conflict;
+      const normalized = text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      if (text === "✅ Continuar con viaje actual" || normalized === "continuar") {
+        await telegramConversation.updateConversationState(convState.id, "none", 0, {}, admin);
+        await showMenu(chatId, session, admin);
+      } else if (text === "🔄 Cerrar actual y crear nuevo" || normalized === "cerrar y crear") {
+        // Cerrar el viaje existente
+        await admin.from("trips").update({ status: "cerrado" }).eq("id", conflictTrip.id);
+        await telegramConversation.updateConversationState(convState.id, "none", 0, {}, admin);
+        // Iniciar flujo de creación normal
+        await telegramConversation.startFlow(chatId, "trip", session, admin);
+        await telegramSender.send(chatId, "🚗 Crear Viaje\n\nEscribe el origen (ciudad/dirección):");
+      } else if (text === "🗑️ Eliminar actual y crear nuevo" || normalized === "eliminar y crear") {
+        // Eliminar el viaje existente (sin gastos = seguro eliminar)
+        const { data: tripExpenses } = await admin.from("expenses")
+          .select("id").eq("trip_id", conflictTrip.id).limit(1);
+        if (tripExpenses && tripExpenses.length > 0) {
+          await admin.from("trips").update({ status: "cerrado" }).eq("id", conflictTrip.id);
+          await telegramSender.send(chatId, "⚠️ El viaje tiene gastos registrados, se cerró en lugar de eliminarlo.");
+        } else {
+          await admin.from("trips").delete().eq("id", conflictTrip.id);
+        }
+        await telegramConversation.updateConversationState(convState.id, "none", 0, {}, admin);
+        await telegramConversation.startFlow(chatId, "trip", session, admin);
+        await telegramSender.send(chatId, "🚗 Crear Viaje\n\nEscribe el origen (ciudad/dirección):");
+      } else {
+        // Reenviar opciones si respuesta no reconocida
+        const tc = convState.context.trip_conflict;
+        const buttons = [["✅ Continuar con viaje actual"], ["🔄 Cerrar actual y crear nuevo"], ["🗑️ Eliminar actual y crear nuevo"], ["↩️ Menú Principal"]];
+        await telegramSender.send(chatId, `Ya tienes un viaje abierto:\n🚗 ${tc.origin} → ${tc.destination}\n\n¿Qué deseas hacer?`, buttons);
+      }
+      return;
+    }
+
     // Confirmación de viaje detectado por voz
     if (convState?.context?.pending_voice_trip && !isMenuButton) {
       const vt = convState.context.pending_voice_trip;
@@ -133,24 +169,49 @@ async function handleMessage(admin, message) {
       return;
     }
     if (text === "🚗 Crear Viaje" || text === "2") {
+      // Verificar si ya existe un viaje abierto
+      const { data: openTrips } = await admin.from("trips")
+        .select("id, origin, destination")
+        .eq("company_id", session.company_id).eq("status", "abierto")
+        .order("started_at", { ascending: false }).limit(1);
+      if (openTrips && openTrips.length > 0) {
+        const existing = openTrips[0];
+        // Guardar referencia del viaje en conflicto y pedir decisión
+        const currentState = await telegramConversation.getOrCreateConversationState(session.id, admin);
+        await telegramConversation.updateConversationState(
+          currentState.id, "none", 0,
+          { trip_conflict: { id: existing.id, origin: existing.origin, destination: existing.destination } },
+          admin
+        );
+        const buttons = [["✅ Continuar con viaje actual"], ["🔄 Cerrar actual y crear nuevo"], ["🗑️ Eliminar actual y crear nuevo"], ["↩️ Menú Principal"]];
+        await telegramSender.send(chatId,
+          `Ya tienes un viaje abierto:\n🚗 ${existing.origin} → ${existing.destination}\n\n¿Qué deseas hacer?`,
+          buttons
+        );
+        return;
+      }
       await telegramConversation.startFlow(chatId, "trip", session, admin);
       await telegramSender.send(chatId, "🚗 Crear Viaje\n\nEscribe el origen (ciudad/dirección):");
       return;
     }
     if (text === "⛽ Reportar Gasto" || text === "3") {
-      await telegramConversation.startFlow(chatId, "expense", session, admin);
-      // Mostrar viajes abiertos de inmediato en vez de pedir ID manualmente
       const { data: trips } = await admin.from("trips")
         .select("id, origin, destination")
         .eq("company_id", session.company_id).eq("status", "abierto")
         .order("started_at", { ascending: false }).limit(4);
       if (!trips || trips.length === 0) {
         await telegramSender.send(chatId, "No hay viajes abiertos. Crea uno primero con 🚗 Crear Viaje.");
-        await telegramConversation.resetConversation(
-          (await telegramConversation.getOrCreateConversationState(session.id, admin)).id, admin
+        return;
+      }
+      await telegramConversation.startFlow(chatId, "expense", session, admin);
+      if (trips.length === 1) {
+        // Auto-seleccionar el único viaje abierto
+        await telegramConversation.handleConversationMessage(
+          chatId, `${trips[0].origin} → ${trips[0].destination}`, session, admin
         );
         return;
       }
+      // Más de un viaje: mostrar lista para elegir
       const buttons = trips.map((t) => [`${t.origin} → ${t.destination}`]);
       await telegramSender.send(chatId, "⛽ Reportar Gasto\n\nSelecciona el viaje:", buttons);
       return;
