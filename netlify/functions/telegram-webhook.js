@@ -8,7 +8,10 @@ const telegramAuth = require("./telegram-auth");
 const telegramSender = require("./telegram-send-message");
 const telegramConversation = require("./telegram-conversation");
 const telegramPhotoHandler = require("./telegram-photo-handler");
-const { analyzeReceiptWithClaude, categoryEmoji } = require("./_lib/vision");
+const { analyzeReceiptWithClaude, readOdometerWithClaude, categoryEmoji } = require("./_lib/vision");
+const { transcribeAudio } = require("./_lib/whisper");
+const { parseVoice } = require("./_lib/voice-parser");
+const telegramPhotoHandlerLib = require("./telegram-photo-handler");
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
@@ -26,7 +29,7 @@ async function handleMessage(admin, message) {
 
   // Nota de voz o archivo de audio
   if (message.voice || message.audio) {
-    await handleVoiceMessage(admin, telegramUserId, chatId);
+    await handleVoiceMessage(admin, telegramUserId, chatId, message.voice || message.audio);
     return;
   }
 
@@ -81,6 +84,35 @@ async function handleMessage(admin, message) {
       "📋 Ver Estado", "4",
       "↩️ Menú Principal", "↩️ Menu Principal"
     ].includes(text);
+
+    // Confirmación de viaje detectado por voz
+    if (convState?.context?.pending_voice_trip && !isMenuButton) {
+      const vt = convState.context.pending_voice_trip;
+      const normalized = text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      const isYes = ["si", "yes", "ok", "va", "✅ sí, crear viaje"].includes(normalized);
+      const isNo = ["no", "cancelar", "❌ cancelar"].includes(normalized);
+      if (isYes) {
+        await telegramConversation.updateConversationState(convState.id, "none", 0, {}, admin);
+        // Pre-llenar contexto del flujo de viaje con datos de voz
+        await telegramConversation.startFlow(chatId, "trip", session, admin);
+        const prefilled = { origin: vt.origin, destination: vt.destination };
+        if (vt.budget) prefilled.budget_amount = vt.budget;
+        await telegramConversation.updateConversationState(convState.id, "trip", vt.budget ? 3 : 2, prefilled, admin);
+        if (!vt.budget) {
+          await telegramSender.send(chatId, `Origen: ${vt.origin} ✅\nDestino: ${vt.destination} ✅\n\nPresupuesto para gastos (número en pesos):`);
+        } else {
+          // Todos los datos disponibles — crear viaje directamente
+          await telegramConversation.handleConversationMessage(chatId, String(vt.budget), session, admin);
+        }
+      } else if (isNo) {
+        await telegramConversation.updateConversationState(convState.id, "none", 0, {}, admin);
+        await telegramSender.send(chatId, "Cancelado. /start para el menú.");
+      } else {
+        const buttons = [["✅ Sí, crear viaje", "❌ Cancelar"]];
+        await telegramSender.send(chatId, `¿Confirmas viaje ${vt.origin} → ${vt.destination}?`, buttons);
+      }
+      return;
+    }
 
     // Confirmación de gasto auto-detectado por IA
     if (convState?.context?.pending_expense && !isMenuButton) {
@@ -170,6 +202,27 @@ async function handlePhotoMessage(admin, telegramUserId, chatId, photos) {
       const fileId = photo.file_id;
 
       if (convState.flow_type === "inspection") {
+        // Paso 2 (kilometraje): intentar leer odómetro de la foto con Vision
+        if (convState.current_step === 2) {
+          const photoUrl = await telegramPhotoHandler.processPhotoForInspection(
+            fileId, chatId, session, convState, "odometro", admin
+          );
+          const reading = await readOdometerWithClaude(photoUrl);
+          if (reading?.km) {
+            const buttons = [["✅ Confirmar", "❌ Otro número"]];
+            const ctx = convState.context || {};
+            ctx._odometer_url = photoUrl;
+            await telegramConversation.updateConversationState(convState.id, "inspection", convState.current_step, ctx, admin);
+            await telegramSender.send(chatId,
+              `📷 Leo <b>${reading.km.toLocaleString()} km</b> en el odómetro.\n¿Es correcto?`,
+              buttons
+            );
+          } else {
+            await telegramSender.send(chatId, "No pude leer el odómetro claramente. Escribe el número de kilómetros:");
+          }
+          return;
+        }
+
         const photoUrl = await telegramPhotoHandler.processPhotoForInspection(
           fileId, chatId, session, convState, "inspeccion", admin
         );
@@ -257,7 +310,7 @@ async function handlePhotoMessage(admin, telegramUserId, chatId, photos) {
 }
 
 // ---------- Nota de voz ----------
-async function handleVoiceMessage(admin, telegramUserId, chatId) {
+async function handleVoiceMessage(admin, telegramUserId, chatId, voiceOrAudio) {
   try {
     const session = await telegramAuth.getSession(telegramUserId, admin);
     if (!session) {
@@ -265,15 +318,110 @@ async function handleVoiceMessage(admin, telegramUserId, chatId) {
       return;
     }
 
-    // Por ahora: guiar al usuario a enviar la foto del ticket
-    // (transcripción de audio en desarrollo)
-    const buttons = [["⛽ Reportar Gasto", "🔍 Inspeccionar"], ["↩️ Menú Principal"]];
+    const convState = await telegramConversation.getOrCreateConversationState(session.id, admin);
+    const fileId = voiceOrAudio?.file_id;
+
+    // Sin Whisper: fallback a menú
+    if (!process.env.OPENAI_API_KEY || !fileId) {
+      const buttons = [["⛽ Reportar Gasto", "🔍 Inspeccionar"], ["↩️ Menú Principal"]];
+      await telegramSender.send(chatId,
+        "🎤 Recibí tu nota de voz.\n\n📸 Envía la <b>foto del ticket</b> y la registro automáticamente, o usa el menú:",
+        buttons
+      );
+      return;
+    }
+
+    await telegramSender.send(chatId, "🎤 Procesando tu nota de voz…");
+
+    // Descargar audio de Telegram
+    let audioBuffer;
+    try {
+      const fileInfo = await telegramPhotoHandlerLib.downloadFromTelegram(fileId);
+      audioBuffer = await telegramPhotoHandlerLib.downloadFile(fileInfo.file_path);
+    } catch (e) {
+      logger.error("telegram.voice_download_error", { error: e.message });
+      await telegramSender.send(chatId, "❌ No pude descargar el audio. Intenta de nuevo.");
+      return;
+    }
+
+    // Transcribir con Whisper
+    const transcription = await transcribeAudio(audioBuffer);
+    if (!transcription) {
+      const buttons = [["⛽ Reportar Gasto", "🚗 Crear Viaje"], ["↩️ Menú Principal"]];
+      await telegramSender.send(chatId, "No entendí el audio. ¿Qué deseas hacer?", buttons);
+      return;
+    }
+
+    logger.info("telegram.voice_transcribed", { chatId, chars: transcription.length });
+
+    // Si hay flujo activo, pasar transcripción como texto al flujo
+    if (convState?.flow_type && convState.flow_type !== "none") {
+      await telegramConversation.handleConversationMessage(chatId, transcription, session, admin);
+      return;
+    }
+
+    // Sin flujo activo: detectar intención (viaje o gasto)
+    // Palabras clave de viaje
+    const tripKeywords = ["voy a", "salgo", "saliendo", "viajar", "viaje", "destino", "rumbo", "saldremos"];
+    const isTripIntent = tripKeywords.some(k => transcription.toLowerCase().includes(k));
+
+    if (isTripIntent) {
+      const tripData = await parseVoice(transcription, "trip");
+      if (tripData?.origin && tripData?.destination) {
+        // Preguntar confirmación antes de crear
+        const ctx = { voice_trip: tripData };
+        await telegramConversation.updateConversationState(
+          convState.id, "none", 0, { pending_voice_trip: tripData }, admin
+        );
+        const buttons = [["✅ Sí, crear viaje", "❌ Cancelar"]];
+        await telegramSender.send(chatId,
+          `🎤 Entendí:\n🚗 <b>${tripData.origin} → ${tripData.destination}</b>` +
+          (tripData.budget ? `\n💰 Presupuesto: $${tripData.budget} MXN` : "") +
+          `\n\n¿Creo el viaje?`,
+          buttons
+        );
+        return;
+      }
+    }
+
+    // Asumir que es un gasto (caso más común en campo)
+    const expenseData = await parseVoice(transcription, "expense");
+    if (expenseData?.amount && expenseData?.category) {
+      const { data: trips } = await admin.from("trips")
+        .select("id, origin, destination")
+        .eq("company_id", session.company_id).eq("status", "abierto")
+        .order("started_at", { ascending: false }).limit(1);
+
+      const pending = {
+        amount: expenseData.amount,
+        category: expenseData.category,
+        receipt_url: null,
+        trip_id: trips?.[0]?.id || null,
+        vendor: expenseData.merchant
+      };
+      await telegramConversation.updateConversationState(convState.id, "none", 0, { pending_expense: pending }, admin);
+
+      const vendorNote = expenseData.merchant ? ` (${expenseData.merchant})` : "";
+      const tripNote = trips?.[0] ? `\nViaje: <b>${trips[0].origin} → ${trips[0].destination}</b>` : "\n⚠️ Sin viaje abierto";
+      const buttons = trips?.length ? [["✅ Confirmar", "❌ Cancelar"]] : [["🚗 Crear Viaje", "❌ Cancelar"]];
+
+      await telegramSender.send(chatId,
+        `🎤 Entendí un gasto${vendorNote}:\n${categoryEmoji(expenseData.category)} ${expenseData.category.toUpperCase()} — <b>$${expenseData.amount} MXN</b>${tripNote}\n\n¿Lo registro?`,
+        buttons
+      );
+      return;
+    }
+
+    // Transcripción ambigua — mostrar texto y opciones
+    const buttons = [["⛽ Reportar Gasto", "🚗 Crear Viaje"], ["↩️ Menú Principal"]];
     await telegramSender.send(chatId,
-      "🎤 Recibí tu nota de voz.\n\nPor el momento el registro más rápido es con la <b>foto del ticket</b> — solo envíala y la proceso automáticamente.\n\n¿O prefieres usar el menú?",
+      `🎤 Escuché: "<i>${transcription}</i>"\n\nNo identifiqué datos claros. ¿Qué deseas hacer?`,
       buttons
     );
   } catch (e) {
     logger.error("telegram.voice_message_error", { error: e.message });
+    const buttons = [["↩️ Menú Principal"]];
+    await telegramSender.send(chatId, "Error al procesar la nota de voz.", buttons);
   }
 }
 
