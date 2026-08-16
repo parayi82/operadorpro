@@ -439,7 +439,7 @@ async function handleExpenseFlow(chatId, text, session, state, admin) {
           .select("id, origin, destination")
           .eq("company_id", session.company_id)
           .eq("status", "abierto")
-          .order("created_at", { ascending: false })
+          .order("started_at", { ascending: false })
           .limit(4);
 
         if (recentTrips && recentTrips.length > 0) {
