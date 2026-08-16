@@ -1281,8 +1281,12 @@ const CHECKLIST_ITEMS = [
 async function renderInspecciones() {
   setNav(true);
   await loadCompanyData();
-  const vehicleOptions = state.vehicles.map((v) => `<option value="${v.id}">${esc(v.economic_number)}</option>`).join("");
-  const driverOptions = state.drivers.map((d) => `<option value="${d.id}">${esc(d.full_name)}</option>`).join("");
+  const vehicleOptions = state.vehicles.length
+    ? state.vehicles.map((v) => `<option value="${v.id}">${esc(v.economic_number)}</option>`).join("")
+    : `<option value="">— Registra unidades en Flota primero —</option>`;
+  const driverOptions = state.drivers.length
+    ? state.drivers.map((d) => `<option value="${d.id}">${esc(d.full_name)}</option>`).join("")
+    : `<option value="">— Registra choferes en Flota primero —</option>`;
 
   $app.innerHTML = `
     <div class="fleet-shell">
@@ -1339,6 +1343,14 @@ async function renderInspecciones() {
 
   document.getElementById("i-submit").onclick = async () => {
     const msg = document.getElementById("i-msg");
+    if (!document.getElementById("i-vehicle").value) {
+      msg.textContent = "Primero registra una unidad en la sección Flota."; msg.className = "form-msg error"; return;
+    }
+    if (!document.getElementById("i-driver").value) {
+      msg.textContent = "Primero registra un chofer en la sección Flota."; msg.className = "form-msg error"; return;
+    }
+    const submitBtn = document.getElementById("i-submit");
+    submitBtn.disabled = true;
     try {
       msg.textContent = "Subiendo evidencia fotográfica…";
       const photos = [];
@@ -1370,7 +1382,8 @@ async function renderInspecciones() {
         ? "⚠️ Inspección RECHAZADA: hay una falla crítica. No autorices la salida."
         : "✅ Inspección aprobada. Buen viaje.";
       msg.className = inspection.status === "rechazada" ? "form-msg error" : "form-msg";
-    } catch (e) { msg.textContent = e.message; msg.className = "form-msg error"; }
+      submitBtn.disabled = false;
+    } catch (e) { submitBtn.disabled = false; msg.textContent = e.message; msg.className = "form-msg error"; }
   };
 }
 
