@@ -388,13 +388,13 @@ function renderDashboard() {
   }).join("");
 
   $app.innerHTML = `
-    <h1 class="view-title">Hola, ${esc((state.profile?.full_name || "operador").split(" ")[0])}</h1>
-    <p class="view-sub">Tu ruta de certificación. Cada curso aprobado suma un certificado verificable a tu perfil.</p>
+    <h1 class="view-title">📚 Cursos de certificación</h1>
+    <p class="view-sub">Hola, ${esc((state.profile?.full_name || "operador").split(" ")[0])} — completa los cursos y obtén certificados verificables.</p>
     ${expirationAlerts()}
     ${subBanner}
+    <div class="grid grid-3">${cards}</div>
     ${waCard}
-    ${fleetCard}
-    <div class="grid grid-3">${cards}</div>`;
+    ${fleetCard}`;
 
   $app.querySelectorAll("[data-plan]").forEach((b) => (b.onclick = () => startCheckout(b.dataset.plan)));
 }

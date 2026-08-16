@@ -294,7 +294,19 @@ input:focus, select:focus { outline: none; border-color: var(--verde); }
 @media (max-width: 700px) {
   .sign { padding: 32px 24px; }
   .sign .exit { position: static; text-align: left; margin-bottom: 12px; }
-  .topbar nav a.nav-extra { display: none; }
-  .logo { font-size: 20px; }
+  .logo { font-size: 18px; }
+  .logo-text { display: none; }
   #company-switcher { max-width: 45vw; }
+
+  /* Nav horizontal scrollable en móvil */
+  .topbar .container { flex-wrap: nowrap; gap: 8px; padding-top: 6px; padding-bottom: 6px; min-height: 52px; }
+  .topbar nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  .topbar nav::-webkit-scrollbar { display: none; }
+  .topbar nav a { font-size: 13px; padding: 6px 8px; white-space: nowrap; }
 }
