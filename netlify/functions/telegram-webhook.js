@@ -96,9 +96,12 @@ async function handleMessage(admin, message) {
         // Cerrar el viaje existente
         await admin.from("trips").update({ status: "cerrado" }).eq("id", conflictTrip.id);
         await telegramConversation.updateConversationState(convState.id, "none", 0, {}, admin);
-        // Iniciar flujo de creación normal
         await telegramConversation.startFlow(chatId, "trip", session, admin);
-        await telegramSender.send(chatId, "🚗 Crear Viaje\n\nEscribe el origen (ciudad/dirección):");
+        const { data: ro } = await admin.from("trips").select("origin")
+          .eq("company_id", session.company_id).order("started_at", { ascending: false }).limit(12);
+        const uOrigins = [...new Set((ro || []).map(t => t.origin))].slice(0, 4);
+        const oButtons = uOrigins.length > 0 ? [...uOrigins.map(o => [o]), ["✏️ Escribir ciudad"]] : null;
+        await telegramSender.send(chatId, "🚗 Crear Viaje\n\nOrigen del viaje:", oButtons);
       } else if (text === "🗑️ Eliminar actual y crear nuevo" || normalized === "eliminar y crear") {
         // Eliminar el viaje existente (sin gastos = seguro eliminar)
         const { data: tripExpenses } = await admin.from("expenses")
@@ -165,7 +168,15 @@ async function handleMessage(admin, message) {
     // ---------- Menú principal ----------
     if (text === "🔍 Inspeccionar" || text === "1") {
       await telegramConversation.startFlow(chatId, "inspection", session, admin);
-      await telegramSender.send(chatId, "🔍 Nueva Inspección Pre-Viaje\n\nSelecciona la unidad (escribe el número económico):");
+      const { data: vehicles } = await admin.from("vehicles")
+        .select("economic_number, plate").eq("company_id", session.company_id).limit(6);
+      const vButtons = vehicles?.length > 0
+        ? vehicles.map(v => [`${v.economic_number} (${v.plate})`])
+        : null;
+      await telegramSender.send(chatId,
+        "🔍 Inspección Pre-Viaje\n\nSelecciona la unidad a inspeccionar:",
+        vButtons
+      );
       return;
     }
     if (text === "🚗 Crear Viaje" || text === "2") {
@@ -191,7 +202,18 @@ async function handleMessage(admin, message) {
         return;
       }
       await telegramConversation.startFlow(chatId, "trip", session, admin);
-      await telegramSender.send(chatId, "🚗 Crear Viaje\n\nEscribe el origen (ciudad/dirección):");
+      // Sugerir orígenes usados recientemente
+      const { data: recentOrigins } = await admin.from("trips")
+        .select("origin").eq("company_id", session.company_id)
+        .order("started_at", { ascending: false }).limit(12);
+      const uniqueOrigins = [...new Set((recentOrigins || []).map(t => t.origin))].slice(0, 4);
+      const originButtons = uniqueOrigins.length > 0
+        ? [...uniqueOrigins.map(o => [o]), ["✏️ Escribir ciudad"]]
+        : null;
+      await telegramSender.send(chatId,
+        "🚗 Crear Viaje\n\nOrigen del viaje:",
+        originButtons
+      );
       return;
     }
     if (text === "⛽ Reportar Gasto" || text === "3") {
@@ -224,9 +246,10 @@ async function handleMessage(admin, message) {
           const emoji = d.semaforo === "vencido" ? "🔴" : d.semaforo === "por_vencer" ? "🟡" : "🟢";
           return `${emoji} ${d.doc_type}: ${d.expires_at}`;
         }).join("\n") || "Sin documentos registrados.";
-        await telegramSender.send(chatId, `📋 Estado de Documentos\n\n${docStatus}\n\nMás detalles en la app web.`);
+        const stateButtons = [["↩️ Menú Principal"]];
+        await telegramSender.send(chatId, `📋 Estado de Documentos\n\n${docStatus}\n\nMás detalles en la app web.`, stateButtons);
       } catch (e) {
-        await telegramSender.send(chatId, "❌ Error al recuperar estado.");
+        await telegramSender.send(chatId, "❌ Error al recuperar estado.", [["↩️ Menú Principal"]]);
       }
       return;
     }
