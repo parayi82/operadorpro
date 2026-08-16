@@ -469,7 +469,7 @@ async function handleExpenseFlow(chatId, text, session, state, admin) {
       return;
     }
 
-    ctx.trip_id = tripId;
+    ctx.trip_id = trip.id;
     await updateConversationState(state.id, "expense", 1, ctx, admin);
 
     const buttons = [
@@ -614,6 +614,83 @@ async function handleExpenseFlow(chatId, text, session, state, admin) {
   }
 }
 
+// ---------- CONFIRMACIÓN DE GASTO DETECTADO POR IA ----------
+// Se activa cuando el usuario mandó una foto fuera de un flujo,
+// la IA detectó un ticket y está esperando confirmación.
+async function handlePendingExpenseReply(chatId, text, session, state, admin) {
+  const pending = state.context.pending_expense;
+  const normalized = text.toLowerCase().trim()
+    .normalize("NFD").replace(/[̀-ͯ]/g, ""); // quita acentos
+
+  const isYes = ["si", "sí", "yes", "confirmar", "✅ confirmar", "ok", "va"].includes(normalized);
+  const isNo = ["no", "cancelar", "❌ cancelar", "cancel"].includes(normalized);
+
+  if (isYes) {
+    if (!pending.trip_id) {
+      // Sin viaje: pedir que abra uno primero
+      await updateConversationState(state.id, "none", 0, {}, admin);
+      const buttons = [["🚗 Crear Viaje", "↩️ Menú Principal"]];
+      await telegramSender.send(chatId, "No hay viajes abiertos. Crea uno para poder registrar el gasto.", buttons);
+      return;
+    }
+    try {
+      await admin.from("expenses").insert({
+        trip_id: pending.trip_id,
+        category: pending.category || "otro",
+        amount: pending.amount,
+        receipt_url: pending.receipt_url || null,
+        expense_date: new Date().toISOString().split("T")[0],
+        review_status: "ok",
+        created_by: session.user_id
+      });
+      await updateConversationState(state.id, "none", 0, {}, admin);
+      await telegramSender.send(chatId,
+        `✅ Gasto registrado:\n${getCatEmoji(pending.category)} ${(pending.category || "otro").toUpperCase()} — $${pending.amount} MXN`
+      );
+    } catch (e) {
+      logger.error("telegram.auto_expense_save_error", { error: e.message });
+      await updateConversationState(state.id, "none", 0, {}, admin);
+      await telegramSender.send(chatId, "❌ Error al guardar. Intenta de nuevo.");
+    }
+    return;
+  }
+
+  if (isNo) {
+    await updateConversationState(state.id, "none", 0, {}, admin);
+    await telegramSender.send(chatId, "Cancelado. Envía otra foto o usa /start.");
+    return;
+  }
+
+  // Quizás el usuario seleccionó un viaje diferente del que se mostró
+  const { data: trips } = await admin
+    .from("trips").select("id, origin, destination")
+    .eq("company_id", session.company_id).eq("status", "abierto").limit(5);
+
+  const match = trips?.find((t) => {
+    const label = `${t.origin} → ${t.destination}`.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    return label === normalized || label.includes(normalized) || normalized.includes(t.origin.toLowerCase());
+  });
+
+  if (match) {
+    const newCtx = { ...state.context, pending_expense: { ...pending, trip_id: match.id } };
+    await updateConversationState(state.id, "none", 0, newCtx, admin);
+    const buttons = [["✅ Confirmar", "❌ Cancelar"]];
+    await telegramSender.send(chatId,
+      `¿Registro $${pending.amount} ${(pending.category || "otro").toUpperCase()} para <b>${match.origin} → ${match.destination}</b>?`,
+      buttons
+    );
+    return;
+  }
+
+  // Respuesta no reconocida
+  const buttons = [["✅ Confirmar", "❌ Cancelar"]];
+  await telegramSender.send(chatId, `Responde "Confirmar" para guardar o "Cancelar" para descartar.`, buttons);
+}
+
+function getCatEmoji(cat) {
+  return { diesel: "⛽", caseta: "🛣️", comida: "🍔", taller: "🔧", otro: "📦" }[cat] || "📦";
+}
+
 // ---------- Router principal ----------
 async function handleConversationMessage(chatId, text, session, admin) {
   const state = await getOrCreateConversationState(session.id, admin);
@@ -643,5 +720,6 @@ module.exports = {
   updateConversationState,
   resetConversation,
   handleConversationMessage,
+  handlePendingExpenseReply,
   startFlow
 };

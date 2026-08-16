@@ -702,7 +702,7 @@ function renderPerfil() {
       <div id="tg-status-section" style="margin-bottom:14px"></div>
       <button class="btn btn-primary" id="tg-gen-code" style="margin-top:8px">Generar código para Telegram</button>
       <div class="form-msg" id="tg-msg"></div>
-      <div id="tg-code-display" style="display:none;margin-top:14px;padding:16px;background:var(--beige);border-radius:8px;border-left:4px solid var(--verde)">
+      <div id="tg-code-display" style="display:none;margin-top:14px;padding:16px;background:#FFF8E1;border-radius:8px;border-left:4px solid var(--verde)">
         <p style="font-size:12px;color:var(--gris-texto);margin-bottom:8px">Código válido por 15 minutos:</p>
         <div style="font-size:24px;font-weight:bold;color:var(--asfalto);font-family:monospace;letter-spacing:2px;text-align:center;margin-bottom:8px" id="tg-code-value"></div>
         <p style="font-size:12px;color:var(--gris-texto);margin-bottom:8px">1. Abre Telegram y busca <strong>@operadorpromx_bot</strong></p>
