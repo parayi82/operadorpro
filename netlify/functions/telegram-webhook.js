@@ -72,8 +72,17 @@ async function handleMessage(admin, message) {
 
     const convState = await telegramConversation.getOrCreateConversationState(session.id, admin);
 
+    // Botones del menú principal tienen prioridad sobre cualquier estado pendiente
+    const isMenuButton = [
+      "🔍 Inspeccionar", "1",
+      "🚗 Crear Viaje", "2",
+      "⛽ Reportar Gasto", "3",
+      "📋 Ver Estado", "4",
+      "↩️ Menú Principal", "↩️ Menu Principal"
+    ].includes(text);
+
     // Confirmación de gasto auto-detectado por IA
-    if (convState?.context?.pending_expense) {
+    if (convState?.context?.pending_expense && !isMenuButton) {
       await telegramConversation.handlePendingExpenseReply(chatId, text, session, convState, admin);
       return;
     }
