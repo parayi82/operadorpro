@@ -29,6 +29,41 @@ async function requireSession(telegramUserId, chatId, admin) {
   return null;
 }
 
+// ---------- Guard: perfil de operador requerido ----------
+// Devuelve el registro de driver o envía mensaje bloqueante y retorna null.
+async function requireDriverProfile(chatId, session, admin) {
+  const { data: driver } = await admin.from("drivers")
+    .select("id, full_name, status")
+    .eq("company_id", session.company_id)
+    .eq("user_id", session.user_id)
+    .maybeSingle();
+
+  if (!driver) {
+    await telegramSender.send(chatId,
+      "⚠️ <b>No estás dado de alta como operador.</b>\n\n" +
+      "Para usar esta función necesitas tener perfil registrado en el sistema.\n\n" +
+      "Pide a tu despachador que en la app web:\n" +
+      "1️⃣ Vaya a <b>Operadores → Agregar operador</b>\n" +
+      "2️⃣ Registre tu nombre y teléfono\n" +
+      "3️⃣ Vincule tu cuenta de usuario\n\n" +
+      "Cuando te hayan dado de alta, regresa y prueba de nuevo.",
+      [["↩️ Menú Principal"]]
+    );
+    return null;
+  }
+
+  if (driver.status !== "activo") {
+    await telegramSender.send(chatId,
+      "⚠️ Tu perfil de operador está <b>inactivo</b>.\n\n" +
+      "Pide a tu despachador que lo reactive en la app web → Operadores.",
+      [["↩️ Menú Principal"]]
+    );
+    return null;
+  }
+
+  return driver;
+}
+
 // ---------- Recuperación de estado tras error ----------
 async function recoverFromError(chatId, session, admin, e, context = "") {
   logger.error(`telegram.error${context ? "." + context : ""}`, {
@@ -197,12 +232,24 @@ async function handleMessage(admin, message) {
 
     // ---------- Menú principal ----------
     if (text === "🔍 Inspeccionar" || text === "1") {
-      await telegramConversation.startFlow(chatId, "inspection", session, admin);
+      const driver = await requireDriverProfile(chatId, session, admin);
+      if (!driver) return;
+
       const { data: vehicles } = await admin.from("vehicles")
         .select("economic_number, plate").eq("company_id", session.company_id).limit(6);
-      const vButtons = vehicles?.length > 0
-        ? vehicles.map(v => [`${v.economic_number} (${v.plate})`])
-        : null;
+
+      if (!vehicles || vehicles.length === 0) {
+        await telegramSender.send(chatId,
+          "⚠️ <b>No hay unidades registradas en tu empresa.</b>\n\n" +
+          "Pide a tu despachador que en la app web vaya a <b>Flotilla → Agregar unidad</b> " +
+          "y registre los vehículos antes de hacer una inspección.",
+          [["↩️ Menú Principal"]]
+        );
+        return;
+      }
+
+      await telegramConversation.startFlow(chatId, "inspection", session, admin);
+      const vButtons = vehicles.map(v => [`${v.economic_number} (${v.plate})`]);
       await telegramSender.send(chatId,
         "🔍 Inspección Pre-Viaje\n\nSelecciona la unidad a inspeccionar:",
         vButtons
@@ -210,6 +257,9 @@ async function handleMessage(admin, message) {
       return;
     }
     if (text === "🚗 Crear Viaje" || text === "2") {
+      const driver = await requireDriverProfile(chatId, session, admin);
+      if (!driver) return;
+
       // Verificar si ya existe un viaje abierto
       const { data: openTrips } = await admin.from("trips")
         .select("id, origin, destination")
@@ -247,12 +297,20 @@ async function handleMessage(admin, message) {
       return;
     }
     if (text === "⛽ Reportar Gasto" || text === "3") {
+      const driver = await requireDriverProfile(chatId, session, admin);
+      if (!driver) return;
+
       const { data: trips } = await admin.from("trips")
         .select("id, origin, destination")
         .eq("company_id", session.company_id).eq("status", "abierto")
         .order("started_at", { ascending: false }).limit(4);
       if (!trips || trips.length === 0) {
-        await telegramSender.send(chatId, "No hay viajes abiertos. Crea uno primero con 🚗 Crear Viaje.");
+        await telegramSender.send(chatId,
+          "⚠️ <b>No hay viaje abierto.</b>\n\n" +
+          "Para registrar un gasto primero debes iniciar un viaje.\n\n" +
+          "Usa 🚗 Crear Viaje para comenzar.",
+          [["🚗 Crear Viaje", "↩️ Menú Principal"]]
+        );
         return;
       }
       await telegramConversation.startFlow(chatId, "expense", session, admin);
@@ -606,19 +664,32 @@ async function handleContactMessage(admin, message) {
 // ---------- Menú principal ----------
 async function showMenu(chatId, session, admin) {
   try {
-    const { data: profile } = await admin.from("profiles")
-      .select("full_name, subscription_status, plan").eq("id", session.user_id).single();
-    const status = profile?.subscription_status === "active" ? "✅" : "⚠️";
-    const plan = profile?.plan === "protegido" ? "Protegido" : "Esencial";
+    const [{ data: profile }, { data: driver }, { data: openTrips }] = await Promise.all([
+      admin.from("profiles").select("full_name, subscription_status, plan").eq("id", session.user_id).single(),
+      admin.from("drivers").select("id, full_name").eq("company_id", session.company_id).eq("user_id", session.user_id).maybeSingle(),
+      admin.from("trips").select("origin, destination").eq("company_id", session.company_id).eq("status", "abierto").order("started_at", { ascending: false }).limit(1)
+    ]);
+
+    const planStatus = profile?.subscription_status === "active" ? "✅" : "⚠️";
+    const planName = profile?.plan === "protegido" ? "Protegido" : "Esencial";
+    const displayName = profile?.full_name || driver?.full_name || "Operador";
+
+    const lines = [`👤 ${displayName}\n${planStatus} Plan: ${planName}`];
+
+    if (!driver) {
+      lines.push("⚠️ <b>Sin perfil de operador</b> — pide a tu despachador que te dé de alta");
+    } else if (openTrips && openTrips.length > 0) {
+      lines.push(`🚗 Viaje activo: <b>${openTrips[0].origin} → ${openTrips[0].destination}</b>`);
+    }
+
+    lines.push("📸 <b>Consejo:</b> manda la foto de un ticket y lo registro automáticamente.\n\n¿Qué deseas hacer?");
+
     const buttons = [
       ["🔍 Inspeccionar", "🚗 Crear Viaje"],
       ["⛽ Reportar Gasto", "📋 Ver Estado"],
-      ["↩️ Menú Principal"]
     ];
-    await telegramSender.send(chatId,
-      `👤 ${profile?.full_name || "Operador"}\n${status} Plan: ${plan}\n\n📸 <b>Consejo:</b> manda la foto de un ticket y lo registro automáticamente.\n\n¿Qué deseas hacer?`,
-      buttons
-    );
+
+    await telegramSender.send(chatId, lines.join("\n\n"), buttons);
   } catch (e) {
     logger.error("telegram.menu_error", { chatId, error: e.message });
   }
