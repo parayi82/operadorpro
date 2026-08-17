@@ -7,6 +7,31 @@ const https = require("https");
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
+// Enviar mensaje solicitando el número de teléfono (botón nativo de Telegram)
+async function requestContact(chatId, text = "Para vincular tu cuenta, comparte tu número:") {
+  const payload = {
+    chat_id: chatId,
+    text,
+    parse_mode: "HTML",
+    reply_markup: {
+      keyboard: [[{ text: "📱 Compartir mi número", request_contact: true }]],
+      resize_keyboard: true,
+      one_time_keyboard: true
+    }
+  };
+  return post("/sendMessage", payload);
+}
+
+// Eliminar teclado de respuesta
+async function removeKeyboard(chatId, text) {
+  return post("/sendMessage", {
+    chat_id: chatId,
+    text,
+    parse_mode: "HTML",
+    reply_markup: { remove_keyboard: true }
+  });
+}
+
 // Enviar mensaje de texto con teclado opcional
 async function send(chatId, text, buttons = null, replyMode = false) {
   const payload = {
@@ -97,5 +122,7 @@ module.exports = {
   send,
   sendPhoto,
   sendDocument,
+  requestContact,
+  removeKeyboard,
   post
 };

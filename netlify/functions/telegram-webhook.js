@@ -11,9 +11,42 @@ const telegramPhotoHandler = require("./telegram-photo-handler");
 const { analyzeReceiptWithClaude, readOdometerWithClaude, categoryEmoji } = require("./_lib/vision");
 const { transcribeAudio } = require("./_lib/whisper");
 const { parseVoice } = require("./_lib/voice-parser");
-const telegramPhotoHandlerLib = require("./telegram-photo-handler");
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+
+// ---------- Auth guard ----------
+// Verifica sesión y devuelve el objeto, o envía instrucciones si no existe.
+async function requireSession(telegramUserId, chatId, admin) {
+  const session = await telegramAuth.getSession(telegramUserId, admin);
+  if (session) return session;
+  await telegramSender.send(chatId,
+    "⚠️ Tu cuenta no está vinculada.\n\n" +
+    "1️⃣ Abre la app web → Perfil → <b>Generar código de Telegram</b>\n" +
+    "2️⃣ Escríbeme: <code>/auth CODIGO</code>\n\n" +
+    "O comparte tu número y te ayudo a buscarte:"
+  );
+  await telegramSender.requestContact(chatId);
+  return null;
+}
+
+// ---------- Recuperación de estado tras error ----------
+async function recoverFromError(chatId, session, admin, e, context = "") {
+  logger.error(`telegram.error${context ? "." + context : ""}`, {
+    chatId, error: e.message, stack: e.stack
+  });
+  try {
+    const menuButtons = [["↩️ Menú Principal"]];
+    await telegramSender.send(chatId,
+      `❌ Ocurrió un error al procesar tu solicitud.\n\n<i>${e.message}</i>\n\nToca el botón para continuar:`,
+      menuButtons
+    );
+    // Resetear estado de conversación para evitar que quede en limbo
+    if (session) {
+      const state = await telegramConversation.getOrCreateConversationState(session.id, admin);
+      await telegramConversation.resetConversation(state.id, admin);
+    }
+  } catch (_) { /* no hay nada más que hacer */ }
+}
 
 // ---------- Mensaje de texto ----------
 async function handleMessage(admin, message) {
@@ -35,17 +68,18 @@ async function handleMessage(admin, message) {
 
   if (!text) return;
 
+  let session = null;
   try {
-    let session = await telegramAuth.getSession(telegramUserId, admin);
-
     // ---------- Comandos sin sesión ----------
     if (text.startsWith("/start")) {
+      session = await telegramAuth.getSession(telegramUserId, admin);
       if (session) {
         await showMenu(chatId, session, admin);
       } else {
         await telegramSender.send(chatId,
-          "👋 Bienvenido a OperadorPro.\n\nPara vincular tu cuenta ve a la app web → Perfil → Generar código de Telegram.\nLuego escríbeme:\n\n/auth CODIGO"
+          "👋 Bienvenido a OperadorPro.\n\nPara vincular tu cuenta ve a la app web → Perfil → <b>Generar código de Telegram</b>.\nLuego escríbeme:\n\n<code>/auth CODIGO</code>"
         );
+        await telegramSender.requestContact(chatId);
       }
       return;
     }
@@ -53,8 +87,7 @@ async function handleMessage(admin, message) {
     if (text.startsWith("/auth ")) {
       const code = text.substring(6).trim();
       try {
-        const newSession = await telegramAuth.validateAndCreateSession(code, telegramUserId, chatId, admin);
-        session = newSession;
+        session = await telegramAuth.validateAndCreateSession(code, telegramUserId, chatId, admin);
         await telegramSender.send(chatId, "✅ ¡Cuenta vinculada! Ahora puedes usar el bot.");
         await showMenu(chatId, session, admin);
       } catch (e) {
@@ -63,12 +96,9 @@ async function handleMessage(admin, message) {
       return;
     }
 
-
-    if (!session) {
-      if (!text.startsWith("/")) return;
-      await telegramSender.send(chatId, "⚠️ No estás autenticado. Usa /start para comenzar.");
-      return;
-    }
+    // Todo lo demás requiere sesión autenticada
+    session = await requireSession(telegramUserId, chatId, admin);
+    if (!session) return;
 
     await admin.from("telegram_sessions")
       .update({ last_activity_at: new Date().toISOString() })
@@ -270,19 +300,16 @@ async function handleMessage(admin, message) {
     );
     await showMenu(chatId, session, admin);
   } catch (e) {
-    logger.error("telegram.message_error", { telegramUserId, error: e.message });
-    await telegramSender.send(chatId, "❌ Error inesperado: " + e.message);
+    await recoverFromError(chatId, session, admin, e, "message");
   }
 }
 
 // ---------- Foto ----------
 async function handlePhotoMessage(admin, telegramUserId, chatId, photos) {
+  let session = null;
   try {
-    const session = await telegramAuth.getSession(telegramUserId, admin);
-    if (!session) {
-      await telegramSender.send(chatId, "⚠️ Primero autentícate con /start");
-      return;
-    }
+    session = await requireSession(telegramUserId, chatId, admin);
+    if (!session) return;
 
     const convState = await telegramConversation.getOrCreateConversationState(session.id, admin);
 
@@ -302,13 +329,14 @@ async function handlePhotoMessage(admin, telegramUserId, chatId, photos) {
             const buttons = [["✅ Confirmar", "❌ Otro número"]];
             const ctx = convState.context || {};
             ctx._odometer_url = photoUrl;
+            ctx.odometer_km = reading.km; // guardar km para cuando el usuario confirme
             await telegramConversation.updateConversationState(convState.id, "inspection", convState.current_step, ctx, admin);
             await telegramSender.send(chatId,
               `📷 Leo <b>${reading.km.toLocaleString()} km</b> en el odómetro.\n¿Es correcto?`,
               buttons
             );
           } else {
-            await telegramSender.send(chatId, "No pude leer el odómetro claramente. Escribe el número de kilómetros:");
+            await telegramSender.send(chatId, "No pude leer el odómetro. Escribe el número de kilómetros:");
           }
           return;
         }
@@ -394,19 +422,16 @@ async function handlePhotoMessage(admin, telegramUserId, chatId, photos) {
       buttons
     );
   } catch (e) {
-    logger.error("telegram.photo_message_error", { error: e.message });
-    await telegramSender.send(chatId, "Error al procesar foto. Intenta de nuevo.");
+    await recoverFromError(chatId, session, admin, e, "photo");
   }
 }
 
 // ---------- Nota de voz ----------
 async function handleVoiceMessage(admin, telegramUserId, chatId, voiceOrAudio) {
+  let session = null;
   try {
-    const session = await telegramAuth.getSession(telegramUserId, admin);
-    if (!session) {
-      await telegramSender.send(chatId, "⚠️ Primero autentícate con /start");
-      return;
-    }
+    session = await requireSession(telegramUserId, chatId, admin);
+    if (!session) return;
 
     const convState = await telegramConversation.getOrCreateConversationState(session.id, admin);
     const fileId = voiceOrAudio?.file_id;
@@ -426,8 +451,8 @@ async function handleVoiceMessage(admin, telegramUserId, chatId, voiceOrAudio) {
     // Descargar audio de Telegram
     let audioBuffer;
     try {
-      const fileInfo = await telegramPhotoHandlerLib.downloadFromTelegram(fileId);
-      audioBuffer = await telegramPhotoHandlerLib.downloadFile(fileInfo.file_path);
+      const fileInfo = await telegramPhotoHandler.downloadFromTelegram(fileId);
+      audioBuffer = await telegramPhotoHandler.downloadFile(fileInfo.file_path);
     } catch (e) {
       logger.error("telegram.voice_download_error", { error: e.message });
       await telegramSender.send(chatId, "❌ No pude descargar el audio. Intenta de nuevo.");
@@ -509,9 +534,72 @@ async function handleVoiceMessage(admin, telegramUserId, chatId, voiceOrAudio) {
       buttons
     );
   } catch (e) {
-    logger.error("telegram.voice_message_error", { error: e.message });
-    const buttons = [["↩️ Menú Principal"]];
-    await telegramSender.send(chatId, "Error al procesar la nota de voz.", buttons);
+    await recoverFromError(chatId, session, admin, e, "voice");
+  }
+}
+
+// ---------- Contacto compartido (vincular por número) ----------
+async function handleContactMessage(admin, message) {
+  const telegramUserId = message.from.id.toString();
+  const chatId = message.chat.id.toString();
+  const contact = message.contact;
+
+  try {
+    const existing = await telegramAuth.getSession(telegramUserId, admin);
+    if (existing) {
+      await telegramSender.removeKeyboard(chatId, "✅ Ya tienes cuenta vinculada.");
+      await showMenu(chatId, existing, admin);
+      return;
+    }
+
+    if (!contact?.phone_number) {
+      await telegramSender.send(chatId, "No pude leer el número. Intenta con /auth CODIGO.");
+      return;
+    }
+
+    // Normalizar: quitar +, espacios, guiones
+    const rawPhone = contact.phone_number.replace(/[\s\-\(\)\+]/g, "");
+
+    const { data: drivers } = await admin.from("drivers")
+      .select("user_id, company_id, full_name")
+      .ilike("phone", `%${rawPhone}%`)
+      .limit(5);
+
+    if (!drivers || drivers.length === 0) {
+      await telegramSender.removeKeyboard(chatId,
+        "⚠️ No encontré ninguna cuenta con ese número.\n\n" +
+        "Pide a tu administrador que te registre en la app web, o usa <code>/auth CODIGO</code>."
+      );
+      return;
+    }
+
+    const driver = drivers[0];
+    if (!driver.user_id) {
+      await telegramSender.removeKeyboard(chatId,
+        "⚠️ Tu perfil de chofer no tiene usuario vinculado.\n\nPide a tu administrador que lo vincule en la app web."
+      );
+      return;
+    }
+
+    const { data: sessionData, error: sessionError } = await admin
+      .from("telegram_sessions")
+      .upsert({
+        telegram_user_id: telegramUserId,
+        telegram_chat_id: chatId,
+        user_id: driver.user_id,
+        company_id: driver.company_id,
+        authenticated_at: new Date().toISOString(),
+        last_activity_at: new Date().toISOString()
+      }, { onConflict: "telegram_user_id" })
+      .select().single();
+
+    if (sessionError) throw sessionError;
+
+    await telegramSender.removeKeyboard(chatId, `✅ ¡Bienvenido, ${driver.full_name}! Cuenta vinculada.`);
+    await showMenu(chatId, sessionData, admin);
+  } catch (e) {
+    logger.error("telegram.contact_error", { chatId, error: e.message });
+    await telegramSender.send(chatId, "❌ Error al vincular por teléfono. Usa <code>/auth CODIGO</code>.");
   }
 }
 
@@ -549,7 +637,11 @@ exports.handler = async (event) => {
     const body = JSON.parse(event.body || "{}");
     const admin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
     if (body.message) {
-      await handleMessage(admin, body.message);
+      if (body.message.contact) {
+        await handleContactMessage(admin, body.message);
+      } else {
+        await handleMessage(admin, body.message);
+      }
     }
     logger.info("telegram.webhook_processed", { update_id: body.update_id });
     return { statusCode: 200, body: JSON.stringify({ ok: true }) };
