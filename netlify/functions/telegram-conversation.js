@@ -456,7 +456,9 @@ async function handleExpenseFlow(chatId, text, session, state, admin) {
     const buttonText = text.trim();
     const { data: trips } = await admin
       .from("trips").select("id, origin, destination, status")
-      .eq("company_id", session.company_id);
+      .eq("company_id", session.company_id)
+      .eq("status", "abierto")
+      .order("started_at", { ascending: false });
 
     let trip = null;
     if (trips?.length > 0) {
