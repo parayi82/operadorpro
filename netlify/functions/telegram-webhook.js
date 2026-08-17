@@ -315,9 +315,9 @@ async function handleMessage(admin, message) {
       }
       await telegramConversation.startFlow(chatId, "expense", session, admin);
       if (trips.length === 1) {
-        // Auto-seleccionar el único viaje abierto
+        // Pasar el ID directamente para evitar ambigüedad con viajes de mismo nombre
         await telegramConversation.handleConversationMessage(
-          chatId, `${trips[0].origin} → ${trips[0].destination}`, session, admin
+          chatId, trips[0].id, session, admin
         );
         return;
       }
