@@ -74,7 +74,10 @@ exports.validateAndCreateSession = async (code, telegramUserId, telegramChatId, 
     .update({ used: true, used_at: new Date().toISOString() })
     .eq("id", codeData.id);
 
-  // Crear/actualizar sesión Telegram
+  // Crear/actualizar sesión Telegram.
+  // onConflict: "telegram_user_id" → si este Telegram ya tiene sesión (mismo
+  // chofer re-vinculando o cambiando empresa), actualizamos ese registro en lugar
+  // de crear duplicado. Si no existe, se inserta.
   const { data: sessionData, error: sessionError } = await admin
     .from("telegram_sessions")
     .upsert({
@@ -84,7 +87,7 @@ exports.validateAndCreateSession = async (code, telegramUserId, telegramChatId, 
       company_id,
       authenticated_at: new Date().toISOString(),
       last_activity_at: new Date().toISOString()
-    }, { onConflict: "user_id,company_id" })
+    }, { onConflict: "telegram_user_id" })
     .select()
     .single();
 

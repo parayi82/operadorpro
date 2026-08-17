@@ -54,6 +54,43 @@ async function resetConversation(stateId, admin) {
   return updateConversationState(stateId, "none", 0, {}, admin);
 }
 
+// Obtener o auto-crear el driver ligado al usuario de Telegram.
+// Los usuarios nuevos no tienen registro en `drivers` — se crea automáticamente
+// la primera vez usando su nombre de perfil y un teléfono derivado del Telegram ID.
+async function getOrCreateDriverForSession(session, admin) {
+  // 1. Buscar driver ya vinculado a este usuario
+  const { data: existing } = await admin.from("drivers")
+    .select("id, full_name")
+    .eq("company_id", session.company_id)
+    .eq("user_id", session.user_id)
+    .maybeSingle();
+  if (existing) return existing;
+
+  // 2. Auto-crear usando perfil del usuario
+  const { data: profile } = await admin.from("profiles")
+    .select("full_name").eq("id", session.user_id).single();
+  const fullName = (profile?.full_name || "").trim() || "Operador";
+  // Teléfono sintético único: 11 dígitos derivados del Telegram user ID
+  const phone = "1" + session.telegram_user_id.padStart(10, "0");
+
+  const { data: created, error } = await admin.from("drivers").insert({
+    company_id: session.company_id,
+    user_id: session.user_id,
+    full_name: fullName,
+    phone,
+    status: "activo"
+  }).select("id, full_name").single();
+
+  if (error) {
+    // Si ya existe uno con ese phone (conflicto), devolver cualquier driver activo de la empresa
+    const { data: fallback } = await admin.from("drivers")
+      .select("id, full_name").eq("company_id", session.company_id)
+      .eq("status", "activo").limit(1).single();
+    return fallback || null;
+  }
+  return created;
+}
+
 // Montos sugeridos por categoría de gasto
 const AMOUNTS_BY_CATEGORY = {
   diesel: [["$400", "$600", "$800"], ["$1,000", "$1,500", "$2,000"], ["✏️ Otro monto"]],
@@ -228,18 +265,10 @@ async function handleInspectionFlow(chatId, text, session, state, admin) {
 
       // Crear inspección en la BD
       try {
-        // Obtener el driver_id del usuario
-        const { data: driver, error: driverError } = await admin
-          .from("drivers")
-          .select("id")
-          .eq("company_id", session.company_id)
-          .eq("user_id", session.user_id)
-          .single();
-
-        if (driverError || !driver) {
-          await telegramSender.send(
-            chatId,
-            "No encontramos tu perfil de chofer. Configura en la app web."
+        const driver = await getOrCreateDriverForSession(session, admin);
+        if (!driver) {
+          await telegramSender.send(chatId,
+            "⚠️ No se pudo crear tu perfil de chofer. Ve a la app web → Choferes y agrega el tuyo."
           );
           await resetConversation(state.id, admin);
           return;
@@ -376,14 +405,14 @@ async function handleTripFlow(chatId, text, session, state, admin) {
     ctx.budget_amount = budget;
 
     try {
-      const { data: drivers } = await admin.from("drivers")
-        .select("id").eq("company_id", session.company_id).limit(1);
+      const driver = await getOrCreateDriverForSession(session, admin);
       const { data: vehicles } = await admin.from("vehicles")
         .select("id").eq("company_id", session.company_id).limit(1);
 
-      if (!drivers?.length || !vehicles?.length) {
+      if (!driver || !vehicles?.length) {
+        const missing = !vehicles?.length ? "unidades" : "perfil de chofer";
         await telegramSender.send(chatId,
-          "⚠️ Configura choferes y unidades en la app web para crear viajes."
+          `⚠️ Falta configurar ${missing} en la app web antes de crear viajes.`
         );
         await resetConversation(state.id, admin);
         return;
@@ -392,7 +421,7 @@ async function handleTripFlow(chatId, text, session, state, admin) {
       const { data: trip, error } = await admin.from("trips").insert({
         company_id: session.company_id,
         vehicle_id: vehicles[0].id,
-        driver_id: drivers[0].id,
+        driver_id: driver.id,
         origin: ctx.origin,
         destination: ctx.destination,
         budget_amount: ctx.budget_amount,
