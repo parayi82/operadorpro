@@ -16,6 +16,13 @@
 
 # telegram-poller removed — using webhook instead (instant responses)
 
+# Alias /api/* → /.netlify/functions/* para que los paneles puedan
+# usar rutas cortas (/api/despacho-cartera) sin cambiar el framework.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
 # Las funciones no se cachean (excepto los endpoints públicos que
 # fijan su propio Cache-Control corto, ej. verify-certificate y
 # fleet-vehicle-qr)
