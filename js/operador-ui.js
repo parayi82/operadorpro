@@ -254,6 +254,14 @@
             <span class="op-action-emoji">📄</span>
             <span class="op-action-label">Mis Docs</span>
           </button>
+          <button class="op-action-card" data-go="#/operador/cursos">
+            <span class="op-action-emoji">📚</span>
+            <span class="op-action-label">Mis Cursos</span>
+          </button>
+          <button class="op-action-card" data-go="#/operador/perfil">
+            <span class="op-action-emoji">👤</span>
+            <span class="op-action-label">Mi Perfil</span>
+          </button>
         </div>
         ${tabs("#/operador")}
       </div>`;
@@ -973,6 +981,167 @@
       </div>`;
   }
 
+  // ═══════════════════════════════════════════════════════════
+  //  CURSOS
+  // ═══════════════════════════════════════════════════════════
+  async function renderCursos() {
+    setOpMode();
+    const el = $el();
+
+    // COURSES es el global de courses-data.js
+    const allCourses = window.COURSES || [];
+    const progress   = state.progress || [];
+    const certs      = state.certificates || [];
+
+    if (!allCourses.length) {
+      el.innerHTML = blockScreen("No hay cursos disponibles.", "#/operador", "#/operador");
+      return;
+    }
+
+    const courseItems = allCourses.map((c) => {
+      const done  = progress.filter((p) => p.course_id === c.id).length;
+      const total = (c.lessons || []).length;
+      const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
+      const cert  = certs.find((x) => x.course_id === c.id);
+      const sub   = cert ? "✅ Certificado obtenido"
+                  : pct > 0  ? `${pct}% completado (${done}/${total} lecciones)`
+                  : "Sin comenzar";
+      return `
+        <button class="op-selector-item" data-href="#/curso/${esc(c.id)}">
+          <div class="op-selector-text">
+            <div>${esc(c.title)}</div>
+            <div class="op-selector-sub">${sub}</div>
+          </div>
+          ${cert
+            ? `<span style="font-size:22px">🎓</span>`
+            : `<span class="op-selector-arrow">›</span>`}
+        </button>`;
+    }).join("");
+
+    el.innerHTML = `
+      <div class="op-screen">
+        <div class="op-wizard-header">
+          <a href="#/operador" class="op-back-btn">←</a>
+          <span class="op-wizard-title">Mis Cursos</span>
+        </div>
+        <div class="op-wizard-body">
+          <div class="op-selector-list">${courseItems}</div>
+          <p style="text-align:center;margin-top:16px">
+            <a href="#/certificados" style="color:var(--verde);font-weight:600">
+              Ver mis certificados →
+            </a>
+          </p>
+        </div>
+        ${tabs("#/operador")}
+      </div>`;
+
+    el.querySelectorAll("[data-href]").forEach((btn) => {
+      btn.onclick = () => { location.hash = btn.dataset.href; };
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  PERFIL (driver)
+  // ═══════════════════════════════════════════════════════════
+  async function renderPerfilOperador() {
+    setOpMode();
+    const el = $el();
+    el.innerHTML = `<div class="op-screen"><div class="op-wizard-body" style="color:var(--gris-texto)">Cargando…</div>${tabs("#/operador")}</div>`;
+
+    await loadCompanyData();
+    const driver  = await myDriver();
+    const profile = state.profile;
+
+    const daysUntilDate = (d) => d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
+    const fmtDay = (d) => d ? new Date(d).toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" }) : "—";
+    function daysTag(days) {
+      if (days === null) return `<span style="color:var(--gris-texto)">Sin registrar</span>`;
+      if (days < 0)     return `<span style="color:var(--rojo)">Vencida hace ${Math.abs(days)} días</span>`;
+      if (days <= 30)   return `<span style="color:var(--ambar)">${days} días restantes</span>`;
+      return `<span style="color:var(--verde)">${days} días restantes</span>`;
+    }
+
+    const licDays = daysUntilDate(profile?.licencia_vigencia);
+    const medDays = daysUntilDate(profile?.examen_medico_vigencia);
+
+    const myTrips = driver
+      ? (state.trips || []).filter((t) => t.driver_id === driver.id).slice(0, 5)
+      : [];
+    const certs = state.certificates || [];
+
+    el.innerHTML = `
+      <div class="op-screen">
+        <div class="op-wizard-header">
+          <a href="#/operador" class="op-back-btn">←</a>
+          <span class="op-wizard-title">Mi Perfil</span>
+        </div>
+        <div class="op-wizard-body">
+          ${driver ? `
+            <div class="op-confirm-card">
+              <div class="op-confirm-row">
+                <span class="op-confirm-label">Nombre</span>
+                <span class="op-confirm-value">${esc(driver.full_name)}</span>
+              </div>
+              <div class="op-confirm-row">
+                <span class="op-confirm-label">Empresa</span>
+                <span class="op-confirm-value">${esc(state.company?.name || "—")}</span>
+              </div>
+              <div class="op-confirm-row">
+                <span class="op-confirm-label">Estado</span>
+                <span class="op-confirm-value" style="color:var(--verde)">✅ Operador activo</span>
+              </div>
+              <div class="op-confirm-row">
+                <span class="op-confirm-label">Licencia federal</span>
+                <span class="op-confirm-value">${daysTag(licDays)}</span>
+              </div>
+              <div class="op-confirm-row">
+                <span class="op-confirm-label">Examen psicofísico</span>
+                <span class="op-confirm-value">${daysTag(medDays)}</span>
+              </div>
+              <div class="op-confirm-row">
+                <span class="op-confirm-label">Certificados</span>
+                <span class="op-confirm-value">${certs.length} obtenidos</span>
+              </div>
+            </div>` : `
+            <div class="op-alert-box">
+              ⚠️ No estás dado de alta como operador activo en ninguna empresa.<br>
+              Pide a tu despachador que te registre en <strong>Flota → Operadores</strong>.
+            </div>`}
+
+          ${myTrips.length ? `
+            <div style="margin-top:20px">
+              <div style="font-family:var(--font-display);font-weight:700;text-transform:uppercase;font-size:13px;letter-spacing:.06em;color:var(--gris-texto);margin-bottom:10px">
+                Últimos viajes
+              </div>
+              ${myTrips.map((t) => `
+                <div style="background:var(--niebla);border-radius:12px;padding:12px 14px;margin-bottom:8px">
+                  <div style="font-weight:600;font-size:15px">${esc(t.origin)} → ${esc(t.destination)}</div>
+                  <div style="font-size:12px;color:var(--gris-texto);margin-top:2px">
+                    ${esc((t.started_at || "").slice(0, 10))} ·
+                    <span style="color:${t.status === "abierto" ? "var(--verde)" : "inherit"}">${esc(t.status)}</span>
+                    ${t.budget_amount ? ` · Presupuesto: ${fmtMXN(t.budget_amount)}` : ""}
+                  </div>
+                </div>`).join("")}
+            </div>` : ""}
+
+          <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px">
+            <button class="op-btn-primary" onclick="location.hash='#/operador/estado'">
+              📄 Mis documentos de cumplimiento
+            </button>
+            <button class="op-btn-primary" onclick="location.hash='#/operador/cursos'"
+                    style="background:var(--asfalto)">
+              📚 Mis cursos y certificados
+            </button>
+            <button class="op-btn-primary" onclick="location.hash='#/perfil'"
+                    style="background:var(--gris-texto)">
+              ⚙️ Editar mi perfil completo
+            </button>
+          </div>
+        </div>
+        ${tabs("#/operador")}
+      </div>`;
+  }
+
   // ── API pública para panel.js ────────────────────────────────
   window.OperadorUI = {
     renderHome,
@@ -980,6 +1149,8 @@
     renderGasto,
     renderInspeccion,
     renderEstado,
+    renderCursos,
+    renderPerfil: renderPerfilOperador,
     clearOpMode
   };
 })();

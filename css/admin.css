@@ -1,0 +1,306 @@
+/* OperadorPro — Admin Platform (Dark Enterprise Theme)
+   Carga siempre DESPUÉS de styles.css y fleet.css.
+   Sobrescribe el tema claro para esta pantalla de solo administradores.
+   ============================================================ */
+
+:root {
+  --ad-bg:      #0B0D14;
+  --ad-surface: #121520;
+  --ad-card:    #1B1F2E;
+  --ad-border:  #242840;
+  --ad-text:    #DDE0EE;
+  --ad-muted:   #606688;
+  --ad-accent:  #4F72FF;
+  --ad-green:   #22C55E;
+  --ad-amber:   #F59E0B;
+  --ad-red:     #EF4444;
+}
+
+body { background: var(--ad-bg) !important; color: var(--ad-text); }
+
+/* ── Topbar ───────────────────────────────────────────────── */
+.topbar { background: #080A10 !important; border-bottom: 1px solid var(--ad-border) !important; }
+.topbar .chip { background: var(--ad-red) !important; }
+.topbar .logo { color: var(--ad-text) !important; }
+
+/* ── Shell ────────────────────────────────────────────────── */
+.ad-shell { max-width: 1240px; margin: 0 auto; padding: 28px 24px 80px; }
+
+/* ── KPI tiles ────────────────────────────────────────────── */
+.ad-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.ad-kpi {
+  background: var(--ad-card);
+  border: 1px solid var(--ad-border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.ad-kpi-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .10em;
+  color: var(--ad-muted);
+  margin-bottom: 8px;
+}
+.ad-kpi-value {
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ad-text);
+}
+.ad-kpi-value.green { color: var(--ad-green); }
+.ad-kpi-value.amber { color: var(--ad-amber); }
+.ad-kpi-value.red   { color: var(--ad-red); }
+.ad-kpi-value.blue  { color: var(--ad-accent); }
+.ad-kpi-sub { font-size: 12px; color: var(--ad-muted); margin-top: 4px; }
+
+/* ── Tabs ─────────────────────────────────────────────────── */
+.ad-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--ad-border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.ad-tabs::-webkit-scrollbar { display: none; }
+.ad-tab {
+  padding: 11px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  color: var(--ad-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color .12s, border-color .12s;
+  font-family: var(--font-display);
+}
+.ad-tab:hover { color: var(--ad-text); }
+.ad-tab.active { color: var(--ad-accent); border-color: var(--ad-accent); }
+
+/* ── Panels ───────────────────────────────────────────────── */
+.ad-panel { display: none; padding: 22px 0; }
+.ad-panel.active { display: block; }
+
+/* ── Tables ───────────────────────────────────────────────── */
+.ad-tscroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  border: 1px solid var(--ad-border);
+}
+table.ad-tbl { width: 100%; min-width: 520px; border-collapse: collapse; }
+table.ad-tbl th {
+  background: #10121C;
+  color: var(--ad-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--ad-border);
+  font-family: var(--font-display);
+}
+table.ad-tbl td {
+  padding: 12px 14px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--ad-border);
+  color: var(--ad-text);
+  vertical-align: middle;
+}
+table.ad-tbl tr:last-child td { border-bottom: none; }
+table.ad-tbl tr:hover td { background: rgba(255,255,255,.022); }
+
+/* ── Badges ───────────────────────────────────────────────── */
+.ad-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.ad-badge.green { background: rgba(34,197,94,.15); color: var(--ad-green); }
+.ad-badge.amber { background: rgba(245,158,11,.15); color: var(--ad-amber); }
+.ad-badge.red   { background: rgba(239,68,68,.15);  color: var(--ad-red); }
+.ad-badge.blue  { background: rgba(79,114,255,.15); color: var(--ad-accent); }
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.ad-btn {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--ad-border);
+  background: var(--ad-surface);
+  color: var(--ad-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 2px;
+  transition: background .1s;
+  font-family: var(--font-body);
+}
+.ad-btn:hover { background: var(--ad-border); }
+.ad-btn:disabled { opacity: .4; cursor: not-allowed; }
+.ad-btn.primary { background: var(--ad-accent); color: #fff; border-color: var(--ad-accent); }
+.ad-btn.primary:hover { filter: brightness(1.1); }
+.ad-btn.danger  { color: var(--ad-red); border-color: var(--ad-red); }
+.ad-btn.success { color: var(--ad-green); border-color: var(--ad-green); }
+
+/* ── Form card ────────────────────────────────────────────── */
+.ad-form-card {
+  background: var(--ad-card);
+  border: 1px solid var(--ad-border);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 560px;
+}
+.ad-form-card label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ad-muted);
+  margin: 14px 0 5px;
+  font-family: var(--font-display);
+}
+.ad-form-card input,
+.ad-form-card select {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--ad-border);
+  background: var(--ad-surface);
+  color: var(--ad-text);
+  font-size: 15px;
+  font-family: var(--font-body);
+}
+.ad-form-card input:focus,
+.ad-form-card select:focus {
+  outline: none;
+  border-color: var(--ad-accent);
+}
+.ad-form-card select option { background: var(--ad-surface); }
+.ad-cbk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+.ad-cbk input { width: auto !important; flex-shrink: 0; }
+
+.ad-msg {
+  padding: 8px 12px;
+  border-radius: 7px;
+  font-size: 13px;
+  margin-top: 10px;
+}
+.ad-msg:empty { display: none; }
+.ad-msg.error { background: rgba(239,68,68,.15); color: var(--ad-red); }
+.ad-msg.ok    { background: rgba(34,197,94,.15);  color: var(--ad-green); }
+
+/* ── Toolbar / Search ─────────────────────────────────────── */
+.ad-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 16px 0 10px;
+}
+.ad-search {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--ad-border);
+  background: var(--ad-surface);
+  color: var(--ad-text);
+  font-size: 14px;
+  width: 260px;
+  font-family: var(--font-body);
+}
+.ad-search:focus { outline: none; border-color: var(--ad-accent); }
+.ad-search::placeholder { color: var(--ad-muted); }
+
+.ad-section-hd {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ad-muted);
+  margin: 20px 0 10px;
+}
+
+/* ── Login ────────────────────────────────────────────────── */
+.ad-login-wrap {
+  min-height: calc(100vh - 62px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.ad-login-box {
+  background: var(--ad-card);
+  border: 1px solid var(--ad-border);
+  border-radius: 16px;
+  padding: 36px;
+  width: 100%;
+  max-width: 380px;
+}
+.ad-login-box h2 { font-size: 22px; margin-bottom: 4px; }
+.ad-login-box p  { color: var(--ad-muted); font-size: 14px; margin-bottom: 20px; }
+.ad-login-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: rgba(239,68,68,.15);
+  color: var(--ad-red);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 10px;
+  font-family: var(--font-display);
+}
+.ad-login-box label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ad-muted);
+  margin: 12px 0 4px;
+  font-family: var(--font-display);
+}
+.ad-login-box input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--ad-border);
+  background: var(--ad-surface);
+  color: var(--ad-text);
+  font-size: 15px;
+  font-family: var(--font-body);
+}
+.ad-login-box input:focus { outline: none; border-color: var(--ad-accent); }
+
+code {
+  font-family: "Courier New", monospace;
+  background: rgba(0,0,0,.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 15px;
+  display: inline-block;
+  margin: 4px 0;
+}
