@@ -189,13 +189,25 @@ const routes = {
   "/flota": renderFlota,
   "/viajes": renderViajes,
   "/inspecciones": renderInspecciones,
-  "/cobranza": renderCobranza
+  "/cobranza": renderCobranza,
+  // Interfaz nativa para operadores en campo
+  "/operador":             () => window.OperadorUI?.renderHome(),
+  "/operador/viaje":       () => window.OperadorUI?.renderViaje(),
+  "/operador/gasto":       () => window.OperadorUI?.renderGasto(),
+  "/operador/inspeccion":  () => window.OperadorUI?.renderInspeccion(),
+  "/operador/estado":      () => window.OperadorUI?.renderEstado(),
+  "/operador/cursos":      () => window.OperadorUI?.renderCursos(),
+  "/operador/perfil":      () => window.OperadorUI?.renderPerfil()
 };
-const FLEET_ROUTES = ["/flota", "/viajes", "/inspecciones", "/cobranza"];
+const FLEET_ROUTES = ["/flota", "/viajes", "/inspecciones", "/cobranza",
+  "/operador", "/operador/viaje", "/operador/gasto", "/operador/inspeccion",
+  "/operador/estado", "/operador/cursos", "/operador/perfil"];
 
 async function router() {
   const hash = location.hash.replace(/^#/, "") || "/dashboard";
   const publicRoutes = ["/login", "/registro", "/pago-confirmado"];
+  // Limpiar modo operador al salir de rutas de chofer
+  if (!hash.startsWith("/operador")) window.OperadorUI?.clearOpMode();
 
   if (!state.session && !publicRoutes.includes(hash)) { location.hash = "#/login"; return; }
   if (state.session && publicRoutes.includes(hash)) { location.hash = "#/dashboard"; return; }
@@ -211,7 +223,7 @@ async function router() {
   if (parts[0] === "leccion" && parts[1] && parts[2] !== undefined) return renderLeccion(parts[1], parseInt(parts[2], 10));
   if (parts[0] === "examen" && parts[1]) return renderExamen(parts[1]);
 
-  const view = routes["/" + (parts[0] || "dashboard")] || renderDashboard;
+  const view = routes[hash] || routes["/" + (parts[0] || "dashboard")] || renderDashboard;
   try {
     await view();
   } catch (e) {
@@ -366,7 +378,11 @@ function renderDashboard() {
       <span class="badge" style="background:var(--amarillo);color:var(--asfalto)">🚛</span>
       <h3 style="color:#fff">¿Eres dueño de tu unidad o de una flota?</h3>
       <p style="color:#C9CDD3">Con esta misma cuenta ya tienes acceso al panel de flota: cumplimiento documental, viáticos, inspección pre-viaje y cobranza.</p>
-      <a class="btn btn-primary" href="#/flota">Ir al panel de flota →</a>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a class="btn btn-primary" href="#/flota">Panel de flota →</a>
+        <a class="btn" href="#/operador" style="background:var(--verde);color:#fff">App de operador →</a>
+        <a class="btn" href="flotero.html" style="background:var(--carbon);color:#fff">Dashboard analítico →</a>
+      </div>
     </div>`;
 
   const cards = COURSES.map((c) => {

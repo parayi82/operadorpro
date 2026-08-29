@@ -4,22 +4,25 @@
   <meta charset="UTF-8">
   <meta name="color-scheme" content="light">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Administración — OperadorPro</title>
+  <title>Panel de Flotero — OperadorPro</title>
+  <meta name="description" content="Panel analítico de flota: costos, rendimiento y cumplimiento por unidad.">
   <meta name="robots" content="noindex, nofollow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/fleet.css">
-  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/flotero.css">
   <meta name="theme-color" content="#05603A">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
+  <link rel="apple-touch-icon" href="/icons/icon-180.png">
 </head>
 <body>
 
 <header class="topbar">
   <div class="container">
-    <span class="logo"><span class="chip">OP</span> Administración</span>
-    <a href="#" id="logout-link" class="hidden" style="color:#C9CDD3">Salir</a>
+    <span class="logo"><span class="chip">OP</span><span class="logo-text"> Flotero</span></span>
+    <nav id="ft-nav"></nav>
   </div>
 </header>
 
@@ -28,7 +31,8 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="js/config.js"></script>
-<script src="js/admin-app.js"></script>
+<script src="js/flotero.js"></script>
 </body>
 </html>
