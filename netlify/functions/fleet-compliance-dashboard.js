@@ -17,7 +17,7 @@ exports.handler = withHandler(
   { name: "fleet-compliance-dashboard", methods: ["GET"], rateLimit: { limit: 60, windowMs: 60_000 } },
   async ({ event, admin, user }) => {
     const { company_id } = validate(querySchema, event.queryStringParameters || {});
-    await requireActiveSubscription(admin, user.id);
+    await requireActiveSubscription(admin, user.id, company_id);
     await requireCompanyRole(admin, user.id, company_id, null);
 
     const cacheKey = `fleet:${company_id}:dashboard`;

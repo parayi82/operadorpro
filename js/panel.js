@@ -22,9 +22,11 @@ const state = {
   companies: [],       // [{id, name, role}]
   companyId: null,
   company: null,       // fila completa de la empresa activa
+  companyAccess: false, // el dueño de la empresa activa tiene plan (cubre a sus choferes)
   vehicles: [],
   drivers: [],
   complianceDocs: [],
+  maintenance: [],
   trips: [],
   clients: [],
   invoices: []
@@ -37,6 +39,10 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const course = (id) => COURSES.find((c) => c.id === id);
 const isSubscribed = () => state.profile?.subscription_status === "active";
 const isProtegido = () => isSubscribed() && state.profile?.plan === "protegido";
+// Acceso a la operación (viajes, gastos, papeles, camión): con plan
+// propio o con el plan del dueño de la empresa activa (un pago cubre
+// a los choferes). Los cursos/certificados siguen siendo por persona.
+const hasAccess = () => isSubscribed() || state.companyAccess === true;
 const daysUntil = (dateStr) => dateStr ? Math.ceil((new Date(dateStr) - new Date()) / 86400000) : null;
 const lessonsDone = (courseId) => state.progress.filter((p) => p.course_id === courseId).map((p) => p.lesson_id);
 const certFor = (courseId) => state.certificates.find((c) => c.course_id === courseId);
@@ -127,18 +133,30 @@ async function loadMemberships() {
     .eq("user_id", state.session.user.id)
     .eq("status", "active");
   state.companies = (data || []).map((m) => ({ id: m.companies.id, name: m.companies.name, role: m.role }));
-  if (!state.companyId && state.companies[0]) state.companyId = state.companies[0].id;
+  if (!state.companyId && state.companies.length) {
+    // Preferencia: la última elegida; si no, la empresa donde soy chofer
+    // (el chofer de un patrón también es dueño de una empresa vacía
+    // creada al registrarse — esa no es la que le sirve).
+    let preferred = null;
+    try { preferred = localStorage.getItem("op_company_id"); } catch {}
+    const pick = state.companies.find((c) => c.id === preferred)
+      || state.companies.find((c) => c.role === "driver")
+      || state.companies[0];
+    state.companyId = pick.id;
+  }
 }
 
 async function loadCompanyData() {
   if (!state.companyId) return;
-  const [{ data: company }, { data: vehicles }, { data: drivers }, { data: trips }, { data: clients }, { data: invoices }] = await Promise.all([
+  const [{ data: company }, { data: vehicles }, { data: drivers }, { data: trips }, { data: clients }, { data: invoices }, accessRes, { data: maintenance }] = await Promise.all([
     sb.from("companies").select("id, name, rfc, entity_type, plan, subscription_status").eq("id", state.companyId).single(),
     sb.from("vehicles").select("*").eq("company_id", state.companyId).order("economic_number"),
     sb.from("drivers").select("*").eq("company_id", state.companyId).order("full_name"),
-    sb.from("trip_reconciliation_v").select("*").eq("company_id", state.companyId).order("started_at", { ascending: false }),
+    sb.from("trip_reconciliation_v").select("*").eq("company_id", state.companyId).order("started_at", { ascending: false }).limit(300),
     sb.from("clients").select("*").eq("company_id", state.companyId).order("name"),
-    sb.from("invoice_status_v").select("*").eq("company_id", state.companyId).order("due_date")
+    sb.from("invoice_status_v").select("*").eq("company_id", state.companyId).order("due_date"),
+    sb.rpc("fn_company_has_access", { p_company_id: state.companyId }).then((r) => r, () => ({ data: false })),
+    sb.from("maintenance_items").select("*").eq("company_id", state.companyId).order("label").then((r) => r, () => ({ data: [] }))
   ]);
   state.company = company || null;
   state.vehicles = vehicles || [];
@@ -146,11 +164,13 @@ async function loadCompanyData() {
   state.trips = trips || [];
   state.clients = clients || [];
   state.invoices = invoices || [];
+  state.companyAccess = accessRes?.data === true;
+  state.maintenance = maintenance || [];
 
   // Sin plan activo, el servidor rechaza esta llamada a propósito (Flota
   // requiere suscripción) — no debe tronar la carga del resto de la app
   // (cursos, perfil) para un usuario que apenas se registró y aún no paga.
-  if (isSubscribed()) {
+  if (hasAccess()) {
     try {
       const { documents } = await callFn("fleet-compliance-dashboard", { query: { company_id: state.companyId } });
       state.complianceDocs = documents || [];
@@ -171,15 +191,17 @@ async function loadAllUserData() {
 
 function resetUserState() {
   state.profile = null; state.progress = []; state.certificates = [];
-  state.companies = []; state.companyId = null; state.company = null;
-  state.vehicles = []; state.drivers = []; state.complianceDocs = [];
+  state.companies = []; state.companyId = null; state.company = null; state.companyAccess = false;
+  state.vehicles = []; state.drivers = []; state.complianceDocs = []; state.maintenance = [];
   state.trips = []; state.clients = []; state.invoices = [];
 }
 
 // ---------- Router ----------
 const routes = {
-  "": renderDashboard,
+  // El inicio ES la app del camionero; los cursos viven en /dashboard.
+  "": () => { location.hash = "#/operador"; },
   "/dashboard": renderDashboard,
+  "/cursos": renderDashboard,
   "/login": renderLogin,
   "/registro": renderRegistro,
   "/pago-confirmado": renderPagoConfirmado,
@@ -190,27 +212,39 @@ const routes = {
   "/viajes": renderViajes,
   "/inspecciones": renderInspecciones,
   "/cobranza": renderCobranza,
-  // Interfaz nativa para operadores en campo
+  // La app del camionero (móvil, en campo) — js/operador-ui.js
   "/operador":             () => window.OperadorUI?.renderHome(),
+  "/operador/alta":        () => window.OperadorUI?.renderAlta(),
+  "/operador/unirme":      () => window.OperadorUI?.renderUnirme(),
+  "/operador/codigo":      () => window.OperadorUI?.renderCodigo(),
   "/operador/viaje":       () => window.OperadorUI?.renderViaje(),
+  "/operador/cerrar":      () => window.OperadorUI?.renderCerrar(),
   "/operador/gasto":       () => window.OperadorUI?.renderGasto(),
+  "/operador/cuentas":     () => window.OperadorUI?.renderCuentas(),
+  "/operador/papeles":     () => window.OperadorUI?.renderPapeles(),
+  "/operador/camion":      () => window.OperadorUI?.renderCamion(),
+  "/operador/cobranza":    () => window.OperadorUI?.renderCobranza(),
+  "/operador/auxilio":     () => window.OperadorUI?.renderAuxilio(),
+  "/operador/mas":         () => window.OperadorUI?.renderMas(),
   "/operador/inspeccion":  () => window.OperadorUI?.renderInspeccion(),
-  "/operador/estado":      () => window.OperadorUI?.renderEstado(),
+  "/operador/estado":      () => window.OperadorUI?.renderPapeles(),
   "/operador/cursos":      () => window.OperadorUI?.renderCursos(),
   "/operador/perfil":      () => window.OperadorUI?.renderPerfil()
 };
-const FLEET_ROUTES = ["/flota", "/viajes", "/inspecciones", "/cobranza",
-  "/operador", "/operador/viaje", "/operador/gasto", "/operador/inspeccion",
-  "/operador/estado", "/operador/cursos", "/operador/perfil"];
+// Rutas que necesitan una empresa activa (todas las de flota). Las del
+// operador se excluyen a propósito: la app del camionero maneja sola el
+// caso "sin empresa" (onboarding) sin mostrar un error técnico.
+const FLEET_ROUTES = ["/flota", "/viajes", "/inspecciones", "/cobranza"];
 
 async function router() {
-  const hash = location.hash.replace(/^#/, "") || "/dashboard";
+  const fullHash = location.hash.replace(/^#/, "") || "/operador";
+  const hash = fullHash.split("?")[0];
   const publicRoutes = ["/login", "/registro", "/pago-confirmado"];
   // Limpiar modo operador al salir de rutas de chofer
   if (!hash.startsWith("/operador")) window.OperadorUI?.clearOpMode();
 
   if (!state.session && !publicRoutes.includes(hash)) { location.hash = "#/login"; return; }
-  if (state.session && publicRoutes.includes(hash)) { location.hash = "#/dashboard"; return; }
+  if (state.session && publicRoutes.includes(hash)) { location.hash = "#/operador"; return; }
 
   if (state.session && FLEET_ROUTES.includes(hash) && !state.companyId) {
     setNav(true);
@@ -222,8 +256,12 @@ async function router() {
   if (parts[0] === "curso" && parts[1]) return renderCurso(parts[1]);
   if (parts[0] === "leccion" && parts[1] && parts[2] !== undefined) return renderLeccion(parts[1], parseInt(parts[2], 10));
   if (parts[0] === "examen" && parts[1]) return renderExamen(parts[1]);
+  if (parts[0] === "operador" && parts[1] === "cuentas" && parts[2]) {
+    try { await window.OperadorUI?.renderCuentasDetalle(parts[2]); } catch (e) { $app.innerHTML = `<div class="form-card"><p class="form-msg error">${esc(e.message)}</p></div>`; }
+    window.scrollTo(0, 0); return;
+  }
 
-  const view = routes[hash] || routes["/" + (parts[0] || "dashboard")] || renderDashboard;
+  const view = routes[hash] || routes["/" + (parts[0] || "operador")] || renderDashboard;
   try {
     await view();
   } catch (e) {
@@ -318,7 +356,7 @@ function renderRegistro() {
 
     msg.className = "form-msg ok";
     msg.textContent = "¡Bienvenido! Redirigiendo…";
-    setTimeout(() => location.hash = "#/dashboard", 1500);
+    setTimeout(() => location.hash = "#/operador", 1500);
   };
 
   document.getElementById("rg-back").onclick = (e) => {
@@ -376,12 +414,12 @@ function renderDashboard() {
   const fleetCard = `
     <div class="card" style="margin-bottom:26px;background:var(--asfalto);color:#fff">
       <span class="badge" style="background:var(--amarillo);color:var(--asfalto)">🚛</span>
-      <h3 style="color:#fff">¿Eres dueño de tu unidad o de una flota?</h3>
-      <p style="color:#C9CDD3">Con esta misma cuenta ya tienes acceso al panel de flota: cumplimiento documental, viáticos, inspección pre-viaje y cobranza.</p>
+      <h3 style="color:#fff">Tu operación diaria está en la app</h3>
+      <p style="color:#C9CDD3">Viajes, gastos, cuentas claras, papeles, mantenimiento y cobranza — desde el celular. El panel de flota y el dashboard son para el dueño con varias unidades.</p>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a class="btn" href="#/operador" style="background:var(--verde);color:#fff">Ir a la app →</a>
         <a class="btn btn-primary" href="#/flota">Panel de flota →</a>
-        <a class="btn" href="#/operador" style="background:var(--verde);color:#fff">App de operador →</a>
-        <a class="btn" href="flotero.html" style="background:var(--carbon);color:#fff">Dashboard analítico →</a>
+        <a class="btn" href="flotero.html" style="background:var(--carbon);color:#fff">Dashboard de flota →</a>
       </div>
     </div>`;
 
@@ -405,8 +443,8 @@ function renderDashboard() {
   }).join("");
 
   $app.innerHTML = `
-    <h1 class="view-title">📚 Cursos de certificación</h1>
-    <p class="view-sub">Hola, ${esc((state.profile?.full_name || "operador").split(" ")[0])} — completa los cursos y obtén certificados verificables.</p>
+    <h1 class="view-title">🎓 Mis cursos</h1>
+    <p class="view-sub">Hola, ${esc((state.profile?.full_name || "operador").split(" ")[0])} — lecciones cortas, examen y certificado con folio verificable. <a href="#/operador">← Volver a la app</a></p>
     ${expirationAlerts()}
     ${subBanner}
     <div class="grid grid-3">${cards}</div>
@@ -1010,8 +1048,11 @@ async function renderFlota() {
     <div class="fleet-card" style="margin-bottom:18px">
       <h3>Flota — ${esc(state.company?.name || "")}</h3>
       ${isSubscribed()
-        ? `<p>Incluida en tu plan <strong>${esc(planLabel)}</strong> — sin costo adicional por unidad. <span class="badge pagada">Activa ✓</span> · ${state.vehicles.length} unidad(es) activa(s)</p>`
-        : `<p class="form-msg error">Necesitas un plan de certificación activo (Esencial o Protegido) para usar el módulo de flota. <a href="#/dashboard">Elegir un plan →</a></p>`}
+        ? `<p>Incluida en tu plan <strong>${esc(planLabel)}</strong> — sin costo adicional por unidad ni por chofer. <span class="badge pagada">Activa ✓</span> · ${state.vehicles.length} unidad(es)</p>
+           <p style="margin-top:8px">Tus choferes entran solos con tu <a href="#/operador/codigo">código de patrón</a> y usan la app sin pagar.</p>`
+        : hasAccess()
+          ? `<p>Acceso cubierto por el plan del dueño de la empresa. <span class="badge pagada">Activa ✓</span></p>`
+          : `<p class="form-msg error">Necesitas un plan activo (Esencial o Protegido) para usar el módulo de flota. <a href="#/dashboard">Elegir un plan →</a></p>`}
     </div>`;
 
   $app.innerHTML = `

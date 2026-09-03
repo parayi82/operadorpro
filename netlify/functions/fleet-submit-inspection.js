@@ -24,7 +24,7 @@ exports.handler = withHandler(
   { name: "fleet-submit-inspection", methods: ["POST"], rateLimit: { limit: 15, windowMs: 60_000 } },
   async ({ event, admin, user }) => {
     const input = validate(schemas.createInspection, parseJsonBody(event));
-    await requireActiveSubscription(admin, user.id);
+    await requireActiveSubscription(admin, user.id, input.company_id);
     await requireCompanyRole(admin, user.id, input.company_id, null); // cualquier miembro (chofer incluido)
     await assertBelongsToCompany(admin, "vehicles", input.vehicle_id, input.company_id, "La unidad");
     await assertBelongsToCompany(admin, "drivers", input.driver_id, input.company_id, "El chofer");

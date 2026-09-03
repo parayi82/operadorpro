@@ -7,6 +7,9 @@
 // El archivo en sí (PDF/foto) se sube antes desde el frontend
 // directo a Supabase Storage (bucket privado "compliance-docs") con
 // el JWT del usuario; aquí solo se registra la URL resultante.
+//
+// Quién puede: owner/admin cualquier documento; el chofer SOLO los de
+// su propio registro (licencia, examen médico) — la RPC lo verifica.
 // ============================================================
 
 const { withHandler } = require("./_lib/handler");
@@ -19,8 +22,8 @@ exports.handler = withHandler(
   { name: "fleet-upload-compliance-doc", methods: ["POST"] },
   async ({ event, admin, user }) => {
     const input = validate(schemas.createComplianceDoc, parseJsonBody(event));
-    await requireActiveSubscription(admin, user.id);
-    await requireCompanyRole(admin, user.id, input.company_id, ["owner", "admin"]);
+    await requireActiveSubscription(admin, user.id, input.company_id);
+    await requireCompanyRole(admin, user.id, input.company_id, null);
 
     const { data, error } = await admin.rpc("fn_create_compliance_document", {
       p_actor_user_id: user.id,

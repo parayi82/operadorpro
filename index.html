@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="color-scheme" content="light">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OperadorPro — Certificación y capacitación para operadores de tractocamión</title>
-  <meta name="description" content="Cursos, examen y certificado verificable para operadores de autotransporte federal: Carta Porte, NOM-087, materiales peligrosos, sujeción de carga, manejo defensivo y protocolo de accidente. Con respaldo legal.">
+  <title>OperadorPro — La app del camionero: viajes, gastos y cuentas claras</title>
+  <meta name="description" content="La app del chofer, el hombre-camión y el pequeño flotero en México. Registra el viaje, los gastos y el flete, y sabe cuánto te quedó. Papeles al día, mantenimiento del camión, cobranza y auxilio en carretera. Desde $249 al mes.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
@@ -14,6 +14,38 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
   <link rel="apple-touch-icon" href="/icons/icon-180.png">
+  <style>
+    /* Solo lo específico de esta página; el sistema visual vive en styles.css */
+    .phone-demo {
+      background: var(--asfalto); border-radius: 22px; padding: 14px; color: #fff;
+      max-width: 340px; margin: 0 auto; box-shadow: 0 18px 50px rgba(0,0,0,.35);
+      font-size: 14px;
+    }
+    .phone-demo .pd-head { font-family: var(--font-display); font-size: 22px; text-transform: uppercase; padding: 6px 4px 10px; }
+    .phone-demo .pd-trip { background: var(--verde); border-radius: 14px; padding: 14px; }
+    .phone-demo .pd-trip .r { font-family: var(--font-display); font-size: 20px; text-transform: uppercase; }
+    .phone-demo .pd-nums { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-top: 10px; }
+    .phone-demo .pd-nums div { background: rgba(255,255,255,.14); border-radius: 8px; padding: 6px 8px; }
+    .phone-demo .pd-nums span { display: block; font-size: 10px; text-transform: uppercase; opacity: .8; letter-spacing: .06em; }
+    .phone-demo .pd-nums b { font-family: var(--font-display); font-size: 18px; }
+    .phone-demo .pd-week { background: #fff; color: var(--asfalto); border-radius: 12px; padding: 10px 12px; margin-top: 10px; display: grid; grid-template-columns: repeat(4,1fr); gap: 4px; }
+    .phone-demo .pd-week span { display: block; font-size: 10px; color: var(--gris-texto); text-transform: uppercase; }
+    .phone-demo .pd-week b { font-family: var(--font-display); font-size: 17px; }
+    .phone-demo .pd-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 10px; }
+    .phone-demo .pd-grid div { background: #fff; color: var(--asfalto); border-radius: 12px; padding: 10px 4px; text-align: center; font-family: var(--font-display); font-size: 13px; text-transform: uppercase; }
+    .phone-demo .pd-grid div em { display: block; font-style: normal; font-size: 24px; }
+    .hero-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 28px; align-items: center; }
+    @media (max-width: 860px) { .hero-grid { grid-template-columns: 1fr; } .phone-demo { margin-top: 10px; } }
+    .who { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 22px; }
+    .who .card h3 { font-size: 30px; }
+    .who .card .tag { font-family: var(--font-display); font-size: 15px; letter-spacing: .12em; text-transform: uppercase; color: var(--verde); }
+    .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; max-width: 900px; margin: 0 auto; }
+    .plans .pricing-card { margin: 0; max-width: none; }
+    .plans .pricing-card.alt { background: var(--asfalto); }
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .steps .card { padding: 20px; }
+    .steps .n { font-family: var(--font-display); font-size: 44px; color: var(--amarillo); line-height: 1; }
+  </style>
 </head>
 <body>
 
@@ -21,9 +53,9 @@
   <div class="container">
     <a class="logo" href="index.html"><span class="chip">OP</span> OperadorPro</a>
     <nav>
-      <a href="#cursos" class="nav-extra">Cursos</a>
+      <a href="#que-hace" class="nav-extra">Qué hace</a>
       <a href="#precio" class="nav-extra">Precio</a>
-      <a href="#flota" class="nav-extra">Para tu flota</a>
+      <a href="#patron" class="nav-extra">Para el patrón</a>
       <a href="verificar.html" class="nav-extra">Verificar certificado</a>
       <a href="app.html" class="btn btn-primary" style="font-size:16px;padding:9px 18px;">Entrar</a>
     </nav>
@@ -33,18 +65,48 @@
 <div class="hero">
   <div class="container">
     <div class="sign">
-      <div class="exit"><span class="arrow">⬈</span>Salida: tu<br>certificación</div>
-      <div class="eyebrow">Autotransporte federal · México</div>
-      <h1>Manejar ya sabes.<br>Ahora demuéstralo con papeles.</h1>
-      <p class="sub">Capacitación profesional para operadores de tracto y tráiler: Carta Porte, tiempos de conducción NOM-087 y protocolo legal de accidente. Aprueba el examen y obtén tu certificado con folio verificable en línea — el documento que las flotas quieren ver antes de contratarte.</p>
-      <div class="cta-row">
-        <a href="planes.html" class="btn btn-primary">Empezar ahora</a>
-        <a href="#cursos" class="btn btn-ghost">Ver los cursos</a>
-      </div>
-      <div class="km-strip">
-        <span><strong>6</strong> cursos disponibles</span>
-        <span><strong>10</strong> reactivos por examen</span>
-        <span><strong>QR</strong> de verificación pública</span>
+      <div class="exit"><span class="arrow">⬈</span>Salida: cuentas<br>claras</div>
+      <div class="eyebrow">La app del camionero · México</div>
+      <div class="hero-grid">
+        <div>
+          <h1>¿Cuánto te quedó<br>de este viaje?</h1>
+          <p class="sub">Anota el viaje, el flete y los gastos desde el celular — diésel, casetas, comida — y la app te dice cuánto te quedó, cuánto te cuesta cada kilómetro y cuánto rinde tu diésel. Sin contador, sin libreta, sin adivinar.</p>
+          <div class="cta-row">
+            <a href="app.html#/registro" class="btn btn-primary">Empezar gratis</a>
+            <a href="#que-hace" class="btn btn-ghost">Ver qué hace</a>
+          </div>
+          <div class="km-strip">
+            <span><strong>$249</strong> al mes, cubre a tus choferes</span>
+            <span><strong>1 min</strong> para abrir un viaje</span>
+            <span><strong>0</strong> fotos obligatorias</span>
+          </div>
+        </div>
+        <div class="phone-demo" aria-hidden="true">
+          <div class="pd-head">Hola, Ramón</div>
+          <div class="pd-trip">
+            <div style="font-size:11px;text-transform:uppercase;opacity:.8;letter-spacing:.06em">Viaje en curso · Unidad 1</div>
+            <div class="r">Querétaro → Monterrey</div>
+            <div class="pd-nums">
+              <div><span>Flete</span><b>$18,000</b></div>
+              <div><span>Gastado</span><b>$9,450</b></div>
+              <div><span>Va quedando</span><b>$8,550</b></div>
+            </div>
+          </div>
+          <div class="pd-week">
+            <div><span>Me quedó</span><b style="color:var(--verde)">$21,300</b></div>
+            <div><span>Cobré</span><b>$52,000</b></div>
+            <div><span>Gasté</span><b>$30,700</b></div>
+            <div><span>Viajes</span><b>3</b></div>
+          </div>
+          <div class="pd-grid">
+            <div><em>📊</em>Cuentas</div>
+            <div><em>📄</em>Papeles</div>
+            <div><em>🔧</em>Camión</div>
+            <div><em>🧾</em>Me deben</div>
+            <div><em>🆘</em>Auxilio</div>
+            <div><em>🎓</em>Cursos</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -52,124 +114,152 @@
 
 <hr class="lane">
 
-<section id="por-que">
+<section id="para-quien">
   <div class="container">
-    <h2 class="section-title">La licencia dice que puedes manejar. El certificado dice que eres profesional.</h2>
-    <p class="section-sub">Las flotas serias ya no contratan solo con licencia federal: buscan operadores que no les detengan un viaje por un error de Carta Porte, que operen dentro de norma y que sepan qué hacer (y qué no firmar) si algo sale mal en carretera. Ese conocimiento es el que aquí se acredita.</p>
+    <h2 class="section-title">Hecha para el que va al volante y para el que lleva las cuentas.</h2>
+    <p class="section-sub">No es un sistema de logística de oficina. Es lo que un camionero necesita tener en el celular, explicado como se habla en la carretera.</p>
+    <div class="who">
+      <div class="card">
+        <span class="tag">Chofer</span>
+        <h3>Manejo para un patrón</h3>
+        <p>Entras con el código que te pasa tu jefe y ya. Registras gastos con o sin foto, cierras el viaje con el kilometraje y le mandas el resumen por WhatsApp. Tus papeles y tus cursos van contigo aunque cambies de patrón.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Hombre-camión</span>
+        <h3>Manejo mi propio camión</h3>
+        <p>Registras tu unidad en un minuto. Cada viaje te dice cuánto te quedó, cuándo toca el aceite, qué papel está por vencer y quién te debe. Lo que antes llevabas en la cabeza o en una libreta.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Pequeño flotero</span>
+        <h3>Tengo varios camiones</h3>
+        <p>Tus choferes usan la app sin pagar nada extra. Tú ves los gastos de cada unidad, el rendimiento del diésel, los vencimientos y la cobranza en un panel — y compartes un código para dar de alta a un chofer nuevo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="lane">
+
+<section id="que-hace" class="dark">
+  <div class="container">
+    <h2 class="section-title">Lo que trae la app</h2>
+    <p class="section-sub">Seis cosas. Ninguna requiere ser experto en tecnología: botones grandes, tres o cuatro toques y listo.</p>
+    <div class="grid grid-3">
+      <div class="card">
+        <span class="badge" style="background:var(--verde)">🚛</span>
+        <h3>Mi viaje</h3>
+        <p>De dónde sales, a dónde vas, cuánto te pagan y qué marca el odómetro. Gastos por categoría con la foto del ticket si quieres. Al llegar, cierras con el km final y la remisión firmada.</p>
+      </div>
+      <div class="card">
+        <span class="badge" style="background:var(--amarillo);color:var(--asfalto)">📊</span>
+        <h3>Mis cuentas</h3>
+        <p>Flete menos gastos = lo que te quedó. Por viaje, por semana y por mes. Costo por kilómetro, rendimiento en km por litro y en qué se te va el dinero. Se manda por WhatsApp con un botón.</p>
+      </div>
+      <div class="card">
+        <span class="badge" style="background:var(--rojo)">📄</span>
+        <h3>Mis papeles</h3>
+        <p>Licencia federal, examen psicofísico, tarjeta de circulación, seguro, verificación. Semáforo de vencimientos y aviso 30, 15 y 5 días antes. La foto del documento a la mano en un retén.</p>
+      </div>
+      <div class="card">
+        <span class="badge" style="background:var(--asfalto);border:1px solid #555">🔧</span>
+        <h3>Mi camión</h3>
+        <p>Kilometraje actual, próximo cambio de aceite, filtros, frenos, llantas y verificación. Te avisa cuando falten mil kilómetros. Un camión bien cuidado es un camión que sigue generando.</p>
+      </div>
+      <div class="card">
+        <span class="badge" style="background:var(--verde-oscuro)">🧾</span>
+        <h3>Me deben</h3>
+        <p>Cada flete que cierras lo pones a cobrar: cliente, monto y fecha. Ves cuánto te deben y qué ya se venció, y el cliente recibe recordatorio automático.</p>
+      </div>
+      <div class="card">
+        <span class="badge" style="background:var(--carbon);border:1px solid #555">🆘</span>
+        <h3>Auxilio en carretera</h3>
+        <p>Ángeles Verdes, Guardia Nacional, CAPUFE, tu aseguradora y tu patrón a un toque. Y qué hacer, paso a paso, si tienes un percance — funciona sin internet.</p>
+      </div>
+    </div>
+    <p class="section-sub" style="margin:30px 0 0;max-width:none">
+      <strong style="color:var(--amarillo)">Y además:</strong> cursos cortos con examen y certificado verificable por QR — Carta Porte, NOM-087, protocolo de accidente, materiales peligrosos, sujeción de carga y manejo defensivo. El papel que las flotas quieren ver antes de contratarte.
+    </p>
+  </div>
+</section>
+
+<hr class="lane">
+
+<section id="como">
+  <div class="container">
+    <h2 class="section-title">Así de simple</h2>
+    <div class="steps">
+      <div class="card"><div class="n">1</div><h3>Regístrate con tu correo</h3><p>Sin formularios largos. Eliges si manejas tu camión, si eres chofer de un patrón o si tienes varios camiones.</p></div>
+      <div class="card"><div class="n">2</div><h3>Abre tu viaje</h3><p>Origen, destino, flete y kilómetros. Un minuto. Si no sabes el flete todavía, lo pones al cerrar.</p></div>
+      <div class="card"><div class="n">3</div><h3>Anota lo que gastas</h3><p>Diésel, caseta, comida… Tocas la categoría, el monto y listo. La foto del ticket es opcional.</p></div>
+      <div class="card"><div class="n">4</div><h3>Cierra y ve tus cuentas</h3><p>Km de llegada y remisión. La app te dice cuánto te quedó y te lo manda por WhatsApp.</p></div>
+    </div>
+  </div>
+</section>
+
+<hr class="lane">
+
+<section id="precio" class="dark">
+  <div class="container">
+    <h2 class="section-title" style="text-align:center">Menos que una caseta</h2>
+    <p class="section-sub" style="text-align:center;margin-left:auto;margin-right:auto">Un solo pago al mes. Si tienes choferes, no pagan nada aparte. Cancelas cuando quieras desde tu perfil.</p>
+    <div class="plans">
+      <div class="pricing-card">
+        <div class="eyebrow" style="font-family:var(--font-display);letter-spacing:.16em;color:var(--amarillo);text-transform:uppercase">Camionero</div>
+        <div class="price">$249 <small>MXN / mes</small></div>
+        <ul>
+          <li>Viajes, gastos y cuentas claras</li>
+          <li>Papeles con semáforo y avisos</li>
+          <li>Mantenimiento del camión</li>
+          <li>Cobranza de fletes</li>
+          <li>Auxilio en carretera</li>
+          <li>Tus choferes incluidos, sin costo extra</li>
+          <li>Todos los cursos y certificados</li>
+        </ul>
+        <a href="planes.html" class="btn btn-primary btn-block">Empezar</a>
+      </div>
+      <div class="pricing-card alt">
+        <div class="eyebrow" style="font-family:var(--font-display);letter-spacing:.16em;color:var(--amarillo);text-transform:uppercase">Camionero Protegido</div>
+        <div class="price">$349 <small>MXN / mes</small></div>
+        <ul>
+          <li>Todo lo del plan Camionero</li>
+          <li>Abogado por WhatsApp para percances, retenes y temas laborales</li>
+          <li>Protocolo de accidente con asesoría 24/7</li>
+          <li>Documentos legales de defensa</li>
+          <li>Soporte prioritario por teléfono</li>
+        </ul>
+        <a href="planes.html" class="btn btn-primary btn-block">Empezar protegido</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="lane">
+
+<section id="patron">
+  <div class="container">
+    <div class="eyebrow" style="font-family:var(--font-display);font-size:19px;letter-spacing:.18em;text-transform:uppercase;color:var(--verde);margin-bottom:10px">Para el patrón</div>
+    <h2 class="section-title">Tus choferes anotan. Tú ves todo.</h2>
+    <p class="section-sub">Cada gasto que tu chofer registra en la carretera te aparece al momento. Sin llamadas de "¿cuánto llevas?", sin tickets arrugados a fin de mes.</p>
     <div class="grid grid-3">
       <div class="card">
         <span class="badge" style="background:var(--verde)">01</span>
-        <h3>Estudia a tu ritmo</h3>
-        <p>Lecciones cortas y directas, pensadas para leerse en la pensión o en la espera de carga. Sin rollos: lo que necesitas saber, explicado por gente que conoce el reglamento y la carretera.</p>
+        <h3>Código de patrón</h3>
+        <p>Le mandas un código de 6 letras por WhatsApp a tu chofer y entra solo con su celular. Sin altas manuales, sin contraseñas que dictar.</p>
       </div>
       <div class="card">
         <span class="badge" style="background:var(--ambar)">02</span>
-        <h3>Aprueba el examen</h3>
-        <p>10 reactivos por curso, necesitas 8 aciertos. Los intentos son ilimitados: aquí venimos a que aprendas, no a reprobarte.</p>
+        <h3>Panel de flota</h3>
+        <p>Unidades, choferes, documentos con semáforo y QR por unidad para mostrar en un retén. Viáticos contra presupuesto y inspección pre-viaje NOM-068 con fotos.</p>
       </div>
       <div class="card">
         <span class="badge" style="background:var(--asfalto)">03</span>
-        <h3>Recibe tu certificado</h3>
-        <p>PDF con folio único tipo placa y código QR. Cualquier reclutador lo escanea y confirma en segundos que es auténtico y está vigente. Sin llamadas, sin dudas.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<hr class="lane">
-
-<section id="cursos" class="dark">
-  <div class="container">
-    <h2 class="section-title">Los cursos del arranque</h2>
-    <p class="section-sub">Seis temas que separan al operador profesional del que nada más maneja. Este catálogo crece cada mes con tu misma suscripción.</p>
-    <div class="grid grid-3">
-      <div class="card">
-        <span class="badge" style="background:var(--verde)">CP</span>
-        <h3>Carta Porte sin errores</h3>
-        <p>Qué revisar antes de arrancar, qué mostrar en un retén y cómo evitar que un error documental te deje parado con la unidad. El tema que más viajes detiene en México.</p>
-        <div class="meta"><span>4 lecciones · examen · certificado</span></div>
-      </div>
-      <div class="card">
-        <span class="badge" style="background:var(--ambar)">087</span>
-        <h3>NOM-087: tiempos de conducción</h3>
-        <p>Horas al volante, pausas obligatorias, bitácora de horas de servicio y por qué operar dentro de norma es tu mejor defensa legal después de un percance.</p>
-        <div class="meta"><span>4 lecciones · examen · certificado</span></div>
-      </div>
-      <div class="card">
-        <span class="badge" style="background:var(--rojo)">SOS</span>
-        <h3>Protocolo de accidente</h3>
-        <p>Los primeros 60 minutos deciden tu futuro: qué hacer, qué decir, qué no firmar y cuáles son tus derechos ante el Ministerio Público. Escrito por abogados.</p>
-        <div class="meta"><span>4 lecciones · examen · certificado</span></div>
-      </div>
-      <div class="card">
-        <span class="badge" style="background:var(--asfalto)">002</span>
-        <h3>Materiales y residuos peligrosos</h3>
-        <p>Documentación, señalización, manejo seguro y respuesta a emergencias para operadores que transportan sustancias peligrosas. Acceso a cargas mejor pagadas.</p>
-        <div class="meta"><span>4 lecciones · examen · certificado</span></div>
-      </div>
-      <div class="card">
-        <span class="badge" style="background:var(--verde-oscuro)">012</span>
-        <h3>Peso, dimensiones y sujeción de carga</h3>
-        <p>Cómo distribuir y sujetar la carga correctamente para evitar sobrepeso, volcaduras y multas — la parte del viaje que más está en tus manos.</p>
-        <div class="meta"><span>4 lecciones · examen · certificado</span></div>
-      </div>
-      <div class="card">
-        <span class="badge" style="background:var(--carbon)">MD</span>
-        <h3>Manejo defensivo</h3>
-        <p>Distancia de seguimiento, puntos ciegos, condiciones adversas y cómo anticipar el error de terceros — técnicas específicas para vehículos pesados.</p>
-        <div class="meta"><span>4 lecciones · examen · certificado</span></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<hr class="lane">
-
-<section id="precio">
-  <div class="container">
-    <h2 class="section-title" style="text-align:center">Un solo plan, sin letras chiquitas</h2>
-    <p class="section-sub" style="text-align:center;margin-left:auto;margin-right:auto">Menos de lo que cuesta una comida en la caseta. Cancela cuando quieras desde tu panel.</p>
-    <div class="pricing-card">
-      <div class="eyebrow" style="font-family:var(--font-display);letter-spacing:.16em;color:var(--amarillo);text-transform:uppercase">Suscripción OperadorPro</div>
-      <div class="price">$249 <small>MXN / mes</small></div>
-      <ul>
-        <li>Acceso a todos los cursos del catálogo</li>
-        <li>Exámenes con intentos ilimitados</li>
-        <li>Certificados con folio y QR verificable</li>
-        <li>Tu perfil profesional de operador</li>
-        <li>Nuevos cursos cada mes sin costo extra</li>
-      </ul>
-      <a href="planes.html" class="btn btn-primary btn-block">Empezar ahora</a>
-    </div>
-  </div>
-</section>
-
-<hr class="lane">
-
-<section id="flota" class="dark">
-  <div class="container">
-    <div class="eyebrow" style="font-family:var(--font-display);font-size:19px;letter-spacing:.18em;text-transform:uppercase;color:var(--amarillo);margin-bottom:10px">Para el dueño del camión o de la flota</div>
-    <h2 class="section-title">¿Ya certificaste a tus operadores? Ahora controla el resto de la operación.</h2>
-    <p class="section-sub">Mismo login, un producto más: si eres dueño de una unidad o de una flotilla, OperadorPro Flota te avisa antes de que un documento vencido te cueste un arrastre, concilia los viáticos que le das a tu chofer y te recuerda cuándo te deben pagar un flete — todo desde el celular.</p>
-    <div class="grid grid-3">
-      <div class="card">
-        <span class="badge" style="background:var(--verde)">01</span>
-        <h3>Cumplimiento con QR</h3>
-        <p>Licencias, pólizas y verificación con semáforo de vencimiento, recordatorios automáticos y un QR por unidad para mostrar en un retén.</p>
-      </div>
-      <div class="card">
-        <span class="badge" style="background:var(--ambar)">02</span>
-        <h3>Viáticos y cobranza</h3>
-        <p>Tu chofer sube la foto del ticket y tú ves el gasto contra el presupuesto del viaje. Tus clientes reciben recordatorio automático cuando se acerca el pago de un flete.</p>
-      </div>
-      <div class="card">
-        <span class="badge" style="background:var(--asfalto)">03</span>
-        <h3>Inspección pre-viaje</h3>
-        <p>Checklist de 10 puntos y 5 fotos obligatorias antes de salir a ruta — con rechazo automático si hay una falla crítica de frenos, luces o llantas.</p>
+        <h3>Dashboard de flota</h3>
+        <p>Gasto de diésel por unidad, rendimiento por kilómetro, utilidad por camión y por chofer, vencimientos y cobranza — en gráficas que se entienden de un vistazo.</p>
       </div>
     </div>
     <div class="cta-row" style="margin-top:24px">
-      <a href="app.html#/flota" class="btn btn-primary">Entrar al panel de flota</a>
+      <a href="app.html#/flota" class="btn btn-green">Entrar al panel de flota</a>
+      <a href="flotero.html" class="btn btn-primary">Ver dashboard de flota</a>
     </div>
   </div>
 </section>
@@ -178,24 +268,32 @@
   <div class="container" style="max-width:760px">
     <h2 class="section-title">Preguntas de la ruta</h2>
     <details>
+      <summary>¿Necesito saber de tecnología?</summary>
+      <p>No. Si sabes mandar un WhatsApp, sabes usar OperadorPro. Todo son botones grandes con tres o cuatro toques. Puedes dictar la ciudad o el monto con el micrófono si no quieres escribir.</p>
+    </details>
+    <details>
+      <summary>Soy chofer de una empresa, ¿me sirve?</summary>
+      <p>Sí. Si tu patrón tiene OperadorPro, entras con su código y usas la app sin pagar. Si no lo tiene, puedes contratar tu propio plan y llevar tus viajes, tus gastos, tus papeles y tus cursos — que son tuyos aunque cambies de patrón.</p>
+    </details>
+    <details>
+      <summary>¿Mis choferes tienen que pagar?</summary>
+      <p>No. Un solo plan del dueño cubre la operación de toda la empresa: sus choferes registran viajes, gastos, papeles e inspecciones sin costo extra. Lo único que va por persona son los cursos con certificado.</p>
+    </details>
+    <details>
+      <summary>¿Tengo que tomar foto de cada ticket?</summary>
+      <p>No es obligatorio. Se recomienda porque es tu comprobante ante el patrón o para deducir, pero si vas de prisa registras el monto y ya. Con el patrón la foto sí le sirve para conciliar viáticos.</p>
+    </details>
+    <details>
+      <summary>¿Funciona sin internet?</summary>
+      <p>La app se abre sin señal y la pantalla de Auxilio (teléfonos y qué hacer en un percance) funciona sin internet. Para guardar viajes y gastos necesitas señal — aunque sea un momento en la siguiente caseta.</p>
+    </details>
+    <details>
       <summary>¿Me van a enseñar a manejar?</summary>
-      <p>No. Manejar ya sabes; para eso están tu experiencia y tu licencia federal. Aquí te profesionalizas: documentación, normas, protocolo legal y todo lo que hace que una flota te prefiera a ti sobre otro operador con las mismas horas de volante.</p>
-    </details>
-    <details>
-      <summary>¿El certificado tiene validez?</summary>
-      <p>El certificado acredita que aprobaste la evaluación del curso y es verificable públicamente por su folio y QR — cualquier empresa puede confirmarlo al instante. No sustituye a tu licencia federal ni a documentos oficiales; es tu evidencia de capacitación profesional ante reclutadores y flotas.</p>
-    </details>
-    <details>
-      <summary>¿Cuánto tardo en certificarme?</summary>
-      <p>Cada curso toma alrededor de una hora entre lecciones y examen. Puedes avanzar a tu ritmo: el progreso se guarda en tu cuenta y lo retomas desde cualquier teléfono o computadora.</p>
-    </details>
-    <details>
-      <summary>¿Qué pasa si repruebo el examen?</summary>
-      <p>Nada: repasas la lección que te falló y lo vuelves a intentar las veces que necesites, sin costo adicional. El objetivo es que domines el tema, no ponerte trampas.</p>
+      <p>No. Manejar ya sabes. Los cursos son de lo demás: Carta Porte, tiempos de conducción, qué hacer en un accidente, materiales peligrosos, carga. Y el certificado con QR es la evidencia que piden las flotas.</p>
     </details>
     <details>
       <summary>¿Cómo cancelo?</summary>
-      <p>Desde tu panel, en un clic, cuando quieras. Conservas el acceso hasta el final del periodo que ya pagaste y tus certificados emitidos siguen siendo verificables.</p>
+      <p>Desde tu perfil, en un clic, cuando quieras. Conservas el acceso hasta el final del periodo que pagaste y tus cuentas y certificados no se borran.</p>
     </details>
   </div>
 </section>
@@ -206,7 +304,7 @@
   <div class="container" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px">
     <div>
       <strong style="color:var(--blanco);font-family:var(--font-display);font-size:20px;text-transform:uppercase">OperadorPro</strong><br>
-      Profesionalización para operadores de autotransporte · México
+      La app del camionero · México
     </div>
     <div>
       <a href="verificar.html">Verificar un certificado</a> ·

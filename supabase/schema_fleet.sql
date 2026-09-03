@@ -20,6 +20,9 @@ create table if not exists public.companies (
   stripe_subscription_id text,
   subscription_status text not null default 'inactive'
     check (subscription_status in ('inactive','active','past_due','canceled')),
+  -- "Código de patrón": el dueño lo comparte por WhatsApp y el chofer
+  -- lo teclea en la app para unirse a la empresa (ver fn_join_company_as_driver).
+  invite_code text unique,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -135,6 +138,7 @@ create table if not exists public.vehicles (
   model text,
   year int check (year between 1980 and 2100),
   status text not null default 'activa' check (status in ('activa','taller','baja')),
+  odometer_km int check (odometer_km is null or odometer_km >= 0), -- km actual (se actualiza al cerrar viaje / cargar diésel)
   created_at timestamptz not null default now(),
   unique (company_id, economic_number),
   unique (company_id, plate)
@@ -252,8 +256,18 @@ create or replace function public.fn_create_compliance_document(
 language plpgsql security definer set search_path = public as $$
 declare
   v_doc public.compliance_documents;
+  v_is_own_driver boolean := false;
 begin
-  if not public.fn_actor_has_role(p_actor_user_id, p_company_id, array['owner','admin']) then
+  -- El chofer puede subir SUS papeles (licencia, examen médico) sobre su
+  -- propio registro; los de la unidad siguen siendo del dueño/admin.
+  if p_driver_id is not null and p_vehicle_id is null then
+    select exists (
+      select 1 from public.drivers d
+      where d.id = p_driver_id and d.company_id = p_company_id and d.user_id = p_actor_user_id
+    ) into v_is_own_driver;
+  end if;
+
+  if not v_is_own_driver and not public.fn_actor_has_role(p_actor_user_id, p_company_id, array['owner','admin']) then
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
@@ -299,6 +313,13 @@ create table if not exists public.trips (
   origin text not null,
   destination text not null,
   budget_amount numeric(12,2) not null check (budget_amount >= 0),
+  -- Lo que pagan por el flete: la base de "¿cuánto me quedó?"
+  freight_amount numeric(12,2) not null default 0 check (freight_amount >= 0),
+  km_start int check (km_start is null or km_start >= 0),
+  km_end int check (km_end is null or km_end >= 0),
+  client_name text,
+  pod_url text,   -- evidencia de entrega (remisión firmada)
+  notes text,
   currency text not null default 'MXN' check (currency = 'MXN'),
   status text not null default 'abierto' check (status in ('abierto','cerrado')),
   started_at timestamptz not null default now(),
@@ -312,10 +333,12 @@ create index if not exists idx_trips_driver on public.trips (driver_id);
 create table if not exists public.expenses (
   id uuid primary key default gen_random_uuid(),
   trip_id uuid not null references public.trips(id) on delete cascade,
-  category text not null check (category in ('diesel','caseta','comida','taller','otro')),
+  category text not null check (category in ('diesel','caseta','comida','hospedaje','maniobras','taller','otro')),
   amount numeric(12,2) not null check (amount > 0),
+  liters numeric(8,2) check (liters is null or liters > 0),      -- solo diésel: rendimiento km/L
+  odometer_km int check (odometer_km is null or odometer_km >= 0),
   merchant_rfc text,
-  receipt_url text not null,
+  receipt_url text, -- foto del ticket: recomendada, no obligatoria
   ocr_raw jsonb,
   ocr_confidence numeric(4,3) check (ocr_confidence is null or ocr_confidence between 0 and 1),
   review_status text not null default 'pendiente' check (review_status in ('pendiente','revision_manual','conciliado')),
@@ -326,12 +349,19 @@ create table if not exists public.expenses (
 
 create index if not exists idx_expenses_trip on public.expenses (trip_id, category);
 
--- Vista de conciliación: gasto acumulado vs. presupuesto por viaje
+-- Vista de conciliación: gasto acumulado vs. presupuesto por viaje, y
+-- las "cuentas claras" del camionero: flete − gastos = utilidad,
+-- diésel y kilómetros recorridos.
 create or replace view public.trip_reconciliation_v as
 select
   t.*,
   coalesce(sum(e.amount), 0) as spent_amount,
-  t.budget_amount - coalesce(sum(e.amount), 0) as remaining_amount
+  t.budget_amount - coalesce(sum(e.amount), 0) as remaining_amount,
+  t.freight_amount - coalesce(sum(e.amount), 0) as profit_amount,
+  coalesce(sum(e.amount) filter (where e.category = 'diesel'), 0) as diesel_amount,
+  coalesce(sum(e.liters) filter (where e.category = 'diesel'), 0) as diesel_liters,
+  case when t.km_end is not null and t.km_start is not null and t.km_end >= t.km_start
+       then t.km_end - t.km_start else null end as distance_km
 from public.trips t
 left join public.expenses e on e.trip_id = t.id
 group by t.id;
@@ -354,23 +384,50 @@ create policy "gastos: insertar via viaje (choferes incluidos)" on public.expens
     exists (select 1 from public.trips t where t.id = trip_id and public.fn_is_company_member(t.company_id, null))
   );
 
--- Cerrar viaje: transacción única (evita cierre parcial)
+-- Cerrar viaje: transacción única (evita cierre parcial). Lo puede
+-- cerrar owner/admin o el propio chofer del viaje. Guarda km final,
+-- evidencia de entrega y flete, y actualiza el odómetro de la unidad.
 -- p_actor_user_id: ver nota en fn_create_compliance_document.
 drop function if exists public.fn_close_trip_and_reconcile(uuid);
-create or replace function public.fn_close_trip_and_reconcile(p_actor_user_id uuid, p_trip_id uuid)
-returns public.trip_reconciliation_v
+drop function if exists public.fn_close_trip_and_reconcile(uuid, uuid);
+create or replace function public.fn_close_trip_and_reconcile(
+  p_actor_user_id uuid, p_trip_id uuid, p_km_end int, p_pod_url text, p_freight_amount numeric
+) returns public.trip_reconciliation_v
 language plpgsql security definer set search_path = public as $$
 declare
   v_trip public.trips;
   v_result public.trip_reconciliation_v;
+  v_is_driver boolean;
 begin
   select * into v_trip from public.trips where id = p_trip_id for update;
   if v_trip.id is null then raise exception 'trip not found'; end if;
-  if not public.fn_actor_has_role(p_actor_user_id, v_trip.company_id, array['owner','admin']) then
+
+  select exists (
+    select 1 from public.drivers d where d.id = v_trip.driver_id and d.user_id = p_actor_user_id
+  ) into v_is_driver;
+
+  if not v_is_driver and not public.fn_actor_has_role(p_actor_user_id, v_trip.company_id, array['owner','admin']) then
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
-  update public.trips set status = 'cerrado', closed_at = now() where id = p_trip_id;
+  if p_km_end is not null and v_trip.km_start is not null and p_km_end < v_trip.km_start then
+    raise exception 'km_end must be >= km_start' using errcode = '22023';
+  end if;
+
+  update public.trips
+     set status = 'cerrado',
+         closed_at = now(),
+         km_end = coalesce(p_km_end, km_end),
+         pod_url = coalesce(p_pod_url, pod_url),
+         freight_amount = coalesce(p_freight_amount, freight_amount)
+   where id = p_trip_id;
+
+  if p_km_end is not null then
+    update public.vehicles
+       set odometer_km = greatest(coalesce(odometer_km, 0), p_km_end)
+     where id = v_trip.vehicle_id;
+  end if;
+
   select * into v_result from public.trip_reconciliation_v where id = p_trip_id;
   return v_result;
 end;
@@ -627,5 +684,144 @@ begin
     (v_invoice.id, v_invoice.due_date + interval '7 days');
 
   return v_invoice;
+end;
+$$;
+
+-- ============================================================
+-- MÓDULO 5 — "La app del camionero": mantenimiento de la unidad,
+-- acceso compartido por empresa, código de patrón y alta express.
+-- (Instalaciones existentes: supabase/migrations/20260903_app_camionero.sql)
+-- ============================================================
+create table if not exists public.maintenance_items (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references public.companies(id) on delete cascade,
+  vehicle_id uuid not null references public.vehicles(id) on delete cascade,
+  kind text not null check (kind in ('aceite','llantas','frenos','verificacion','filtros','otro')),
+  label text not null check (char_length(trim(label)) > 0),
+  every_km int check (every_km is null or every_km > 0),
+  last_km int check (last_km is null or last_km >= 0),
+  last_date date,
+  due_date date,
+  notes text,
+  created_by uuid not null references auth.users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_maintenance_vehicle on public.maintenance_items (vehicle_id);
+
+alter table public.maintenance_items enable row level security;
+
+create policy "mantenimiento: leer miembros" on public.maintenance_items
+  for select using (public.fn_is_company_member(company_id, null));
+create policy "mantenimiento: escribir miembros" on public.maintenance_items
+  for all using (public.fn_is_company_member(company_id, null))
+  with check (public.fn_is_company_member(company_id, null));
+
+-- Una suscripción cubre a la empresa: si el dueño tiene plan activo,
+-- sus choferes usan la app sin pagar cada uno.
+create or replace function public.fn_company_has_access(p_company_id uuid)
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select public.fn_is_company_member(p_company_id, null)
+     and exists (
+       select 1 from public.companies c
+       join public.profiles p on p.id = c.owner_user_id
+       where c.id = p_company_id and p.subscription_status = 'active'
+     );
+$$;
+
+-- Código de patrón (6 caracteres, sin 0/O/1/I para dictarlo por teléfono)
+create or replace function public.fn_get_or_create_invite_code(p_actor_user_id uuid, p_company_id uuid)
+returns text
+language plpgsql security definer set search_path = public as $$
+declare
+  v_code text;
+begin
+  if not public.fn_actor_has_role(p_actor_user_id, p_company_id, array['owner','admin']) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+
+  select invite_code into v_code from public.companies where id = p_company_id;
+  if v_code is not null then return v_code; end if;
+
+  loop
+    v_code := upper(translate(substr(md5(random()::text || clock_timestamp()::text), 1, 8), '01ioIO', 'ABCDEF'));
+    v_code := substr(v_code, 1, 6);
+    exit when not exists (select 1 from public.companies where invite_code = v_code);
+  end loop;
+
+  update public.companies set invite_code = v_code where id = p_company_id;
+  return v_code;
+end;
+$$;
+
+-- El chofer se une a la empresa de su patrón con el código + su teléfono.
+create or replace function public.fn_join_company_as_driver(
+  p_user_id uuid, p_invite_code text, p_phone text, p_full_name text
+) returns public.drivers
+language plpgsql security definer set search_path = public as $$
+declare
+  v_company public.companies;
+  v_driver public.drivers;
+begin
+  select * into v_company from public.companies where invite_code = upper(trim(p_invite_code));
+  if v_company.id is null then
+    raise exception 'invalid invite code' using errcode = 'P0002';
+  end if;
+
+  select * into v_driver from public.drivers
+   where company_id = v_company.id and phone = p_phone
+   for update;
+
+  if v_driver.id is not null then
+    if v_driver.user_id is not null and v_driver.user_id <> p_user_id then
+      raise exception 'phone already linked to another account' using errcode = '23505';
+    end if;
+    update public.drivers set user_id = p_user_id, status = 'activo' where id = v_driver.id
+    returning * into v_driver;
+  else
+    insert into public.drivers (company_id, user_id, full_name, phone)
+    values (v_company.id, p_user_id, p_full_name, p_phone)
+    returning * into v_driver;
+  end if;
+
+  insert into public.company_members (company_id, user_id, role)
+  values (v_company.id, p_user_id, 'driver')
+  on conflict (company_id, user_id) do update set status = 'active';
+
+  return v_driver;
+end;
+$$;
+
+-- Alta express del hombre-camión: su unidad + él mismo como chofer.
+create or replace function public.fn_setup_owner_operator(
+  p_actor_user_id uuid, p_company_id uuid, p_economic_number text, p_plate text,
+  p_full_name text, p_phone text, p_odometer_km int
+) returns public.drivers
+language plpgsql security definer set search_path = public as $$
+declare
+  v_driver public.drivers;
+begin
+  if not public.fn_actor_has_role(p_actor_user_id, p_company_id, array['owner','admin']) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+
+  insert into public.vehicles (company_id, economic_number, plate, odometer_km)
+  values (p_company_id, p_economic_number, p_plate, p_odometer_km)
+  on conflict (company_id, plate) do update set odometer_km = coalesce(excluded.odometer_km, public.vehicles.odometer_km);
+
+  select * into v_driver from public.drivers
+   where company_id = p_company_id and user_id = p_actor_user_id;
+
+  if v_driver.id is null then
+    insert into public.drivers (company_id, user_id, full_name, phone)
+    values (p_company_id, p_actor_user_id, p_full_name, p_phone)
+    on conflict (company_id, phone) do update set user_id = p_actor_user_id, full_name = excluded.full_name, status = 'activo'
+    returning * into v_driver;
+  end if;
+
+  update public.companies set plan = 'hombre_camion' where id = p_company_id and plan = 'hombre_camion';
+  return v_driver;
 end;
 $$;

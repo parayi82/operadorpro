@@ -35,11 +35,13 @@ async function requireCompanyRole(admin, userId, companyId, roles) {
   return data.role;
 }
 
-// Flota está incluida en la suscripción de certificación (Esencial o
-// Protegido) del usuario que actúa — no hay cobro aparte por unidad.
-// Se verifica sobre profiles.subscription_status (no sobre la empresa):
-// dos miembros de la misma empresa pueden tener planes distintos.
-async function requireActiveSubscription(admin, userId) {
+// Una sola suscripción cubre la operación. Tiene acceso quien:
+//   a) tiene plan activo en su propio perfil (chofer independiente,
+//      hombre-camión, dueño de flota), o
+//   b) es miembro de una empresa cuyo DUEÑO tiene plan activo (el
+//      pequeño flotero paga una vez y sus choferes usan la app gratis).
+// companyId es opcional: sin él solo se evalúa (a).
+async function requireActiveSubscription(admin, userId, companyId) {
   const { data, error } = await admin
     .from("profiles")
     .select("subscription_status")
@@ -47,9 +49,28 @@ async function requireActiveSubscription(admin, userId) {
     .single();
 
   if (error) throw error;
-  if (data?.subscription_status !== "active") {
-    throw new ForbiddenError("Necesitas un plan de certificación activo (Esencial o Protegido) para usar el módulo de flota");
+  if (data?.subscription_status === "active") return "own";
+
+  if (companyId) {
+    const { data: company, error: cErr } = await admin
+      .from("companies")
+      .select("owner_user_id")
+      .eq("id", companyId)
+      .maybeSingle();
+    if (cErr) throw cErr;
+
+    if (company?.owner_user_id && company.owner_user_id !== userId) {
+      const { data: owner, error: oErr } = await admin
+        .from("profiles")
+        .select("subscription_status")
+        .eq("id", company.owner_user_id)
+        .maybeSingle();
+      if (oErr) throw oErr;
+      if (owner?.subscription_status === "active") return "company";
+    }
   }
+
+  throw new ForbiddenError("Necesitas un plan activo (o que tu patrón tenga el suyo) para usar esta función");
 }
 
 // Verifica que el usuario sea administrador de PLATAFORMA (acceso

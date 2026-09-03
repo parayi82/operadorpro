@@ -71,11 +71,68 @@ const schemas = {
 
   createExpense: z.object({
     trip_id: z.string().uuid(),
-    category: z.enum(["diesel", "caseta", "comida", "taller", "otro"]),
+    category: z.enum(["diesel", "caseta", "comida", "hospedaje", "maniobras", "taller", "otro"]),
     amount: z.number().positive().max(1_000_000),
+    liters: z.number().positive().max(5_000).optional(),
+    odometer_km: z.number().int().min(0).max(9_999_999).optional(),
     merchant_rfc: z.string().trim().max(13).optional(),
-    receipt_url: z.string().url(),
+    // La foto del ticket es recomendada, no obligatoria: al hombre-camión
+    // no se le puede pedir foto de cada caseta para que la app le sirva.
+    receipt_url: z.string().url().optional(),
     expense_date: z.string().date().optional()
+  }),
+
+  createTrip: z.object({
+    company_id: z.string().uuid(),
+    vehicle_id: z.string().uuid(),
+    driver_id: z.string().uuid(),
+    origin: z.string().trim().min(2).max(120),
+    destination: z.string().trim().min(2).max(120),
+    budget_amount: z.number().nonnegative().max(1_000_000).default(0),
+    freight_amount: z.number().nonnegative().max(10_000_000).default(0),
+    km_start: z.number().int().min(0).max(9_999_999).optional(),
+    client_name: z.string().trim().max(120).optional(),
+    notes: z.string().trim().max(500).optional()
+  }),
+
+  closeTrip: z.object({
+    trip_id: z.string().uuid(),
+    km_end: z.number().int().min(0).max(9_999_999).optional(),
+    pod_url: z.string().url().optional(),
+    freight_amount: z.number().nonnegative().max(10_000_000).optional()
+  }),
+
+  setupOwnerOperator: z.object({
+    company_id: z.string().uuid(),
+    economic_number: z.string().trim().min(1).max(30),
+    plate: z.string().trim().min(5).max(15),
+    full_name: z.string().trim().min(2).max(120),
+    phone: z.string().trim().regex(/^\+?[0-9]{10,15}$/, "Teléfono inválido (10 a 15 dígitos)"),
+    odometer_km: z.number().int().min(0).max(9_999_999).optional()
+  }),
+
+  joinCompany: z.object({
+    invite_code: z.string().trim().min(4).max(12),
+    phone: z.string().trim().regex(/^\+?[0-9]{10,15}$/, "Teléfono inválido (10 a 15 dígitos)"),
+    full_name: z.string().trim().min(2).max(120)
+  }),
+
+  inviteCode: z.object({
+    company_id: z.string().uuid()
+  }),
+
+  saveMaintenance: z.object({
+    company_id: z.string().uuid(),
+    vehicle_id: z.string().uuid(),
+    id: z.string().uuid().optional(),
+    kind: z.enum(["aceite", "llantas", "frenos", "verificacion", "filtros", "otro"]),
+    label: z.string().trim().min(2).max(80),
+    every_km: z.number().int().positive().max(1_000_000).optional(),
+    last_km: z.number().int().min(0).max(9_999_999).optional(),
+    last_date: z.string().date().optional(),
+    due_date: z.string().date().optional(),
+    notes: z.string().trim().max(300).optional(),
+    delete: z.boolean().optional()
   }),
 
   createInspection: z.object({

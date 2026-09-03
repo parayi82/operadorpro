@@ -646,3 +646,129 @@ body.op-mode { background: var(--niebla); }
   text-align: center; color: var(--gris-texto);
   text-transform: uppercase; letter-spacing: .04em;
 }
+
+/* ============================================================
+   La app del camionero — pantallas nuevas (inicio, cuentas,
+   camión, papeles, auxilio, onboarding). Mismo lenguaje visual.
+   ============================================================ */
+.neg { color: var(--rojo) !important; }
+.pos { color: var(--verde) !important; }
+.warn { color: var(--ambar) !important; }
+
+.op-lead { color: var(--gris-texto); font-size: 15px; margin: 0 0 16px; line-height: 1.45; }
+.op-hint { color: var(--gris-texto); font-size: 13px; margin: 16px 0 0; line-height: 1.45; text-align: center; }
+.op-label { display: block; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--gris-texto); margin: 14px 0 6px; }
+.op-tag { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; background: var(--amarillo); color: var(--asfalto); border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: middle; }
+
+/* ---------- Onboarding: ¿cómo trabajas? ---------- */
+.op-onboard { padding: 20px 16px 4px; }
+.op-onboard-title { font-family: var(--font-display); font-size: 30px; font-weight: 700; text-transform: uppercase; line-height: 1.05; }
+.op-onboard-sub { color: var(--gris-texto); font-size: 14px; margin: 4px 0 14px; }
+.op-big-choice {
+  display: flex; align-items: center; gap: 14px; width: 100%;
+  background: #fff; border: 2px solid transparent; border-radius: var(--radius);
+  padding: 16px; margin-bottom: 10px; text-align: left; cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,.07); font-family: var(--font-body); color: var(--asfalto);
+  -webkit-tap-highlight-color: transparent;
+}
+.op-big-choice:active { border-color: var(--verde); background: #f0f7f3; }
+.op-big-choice-icon { font-size: 34px; flex-shrink: 0; }
+.op-big-choice b { display: block; font-family: var(--font-display); font-size: 20px; text-transform: uppercase; line-height: 1.1; }
+.op-big-choice small { display: block; color: var(--gris-texto); font-size: 13px; margin-top: 2px; }
+
+/* ---------- Banner de plan ---------- */
+.op-plan-box { background: var(--carbon); color: #fff; border-radius: var(--radius); padding: 16px; }
+.op-plan-title { font-family: var(--font-display); font-size: 20px; font-weight: 700; text-transform: uppercase; color: var(--amarillo); }
+.op-plan-sub { font-size: 14px; color: #C9CDD3; margin-top: 4px; line-height: 1.4; }
+
+/* ---------- Empezar viaje (sin viaje activo) ---------- */
+.op-start-trip {
+  display: flex; align-items: center; gap: 14px; width: calc(100% - 32px); margin: 16px 16px 0;
+  background: var(--verde); color: #fff; border: none; border-radius: var(--radius);
+  padding: 18px 16px; text-align: left; cursor: pointer; font-family: var(--font-body);
+  box-shadow: 0 6px 18px rgba(5,96,58,.3); -webkit-tap-highlight-color: transparent;
+}
+.op-start-trip:active { background: var(--verde-oscuro); }
+.op-start-trip-icon { font-size: 36px; }
+.op-start-trip b { display: block; font-family: var(--font-display); font-size: 24px; text-transform: uppercase; line-height: 1; }
+.op-start-trip small { display: block; font-size: 13px; opacity: .85; margin-top: 3px; }
+.op-start-trip > span:nth-child(2) { flex: 1; }
+
+/* ---------- Números del viaje activo ---------- */
+.op-trip-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.op-trip-nums div { background: rgba(255,255,255,.14); border-radius: 10px; padding: 8px 10px; }
+.op-trip-nums span { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; opacity: .8; }
+.op-trip-nums b { display: block; font-family: var(--font-display); font-size: 20px; line-height: 1.1; margin-top: 2px; }
+.op-trip-nums b.neg { color: #FFB4B4 !important; }
+
+/* ---------- Esta semana ---------- */
+.op-week { display: block; margin: 12px 16px 0; background: #fff; border-radius: var(--radius); padding: 14px 16px; text-decoration: none; color: var(--asfalto); box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+.op-week-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--gris-texto); margin-bottom: 8px; }
+.op-week-nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.op-week-nums span { display: block; font-size: 11px; color: var(--gris-texto); text-transform: uppercase; letter-spacing: .04em; }
+.op-week-nums b { display: block; font-family: var(--font-display); font-size: 19px; line-height: 1.1; }
+
+/* ---------- Alertas (papeles / mantenimiento) ---------- */
+.op-alerts { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.op-alert-row { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 10px; padding: 10px 12px; font-size: 14px; font-weight: 600; text-decoration: none; color: var(--asfalto); border-left: 4px solid var(--amarillo); }
+.op-alert-row.rojo { border-left-color: var(--rojo); }
+.op-alert-row .op-selector-arrow { margin-left: auto; }
+.op-alert-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--amarillo); flex-shrink: 0; }
+.op-alert-row.rojo .op-alert-dot { background: var(--rojo); }
+
+/* ---------- Cuentas: selector de periodo, número grande, KPIs ---------- */
+.op-seg { display: flex; background: #e4e6e2; border-radius: 12px; padding: 4px; margin-bottom: 14px; }
+.op-seg-btn { flex: 1; border: none; background: transparent; border-radius: 9px; padding: 10px; font-family: var(--font-display); font-size: 16px; font-weight: 700; text-transform: uppercase; color: var(--gris-texto); cursor: pointer; }
+.op-seg-btn.active { background: #fff; color: var(--asfalto); box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+
+.op-big-card { background: var(--verde); color: #fff; border-radius: var(--radius); padding: 18px; margin-bottom: 12px; box-shadow: 0 6px 18px rgba(5,96,58,.25); }
+.op-big-card.neg { background: var(--rojo); box-shadow: 0 6px 18px rgba(185,28,28,.25); }
+.op-big-card.dark { background: var(--asfalto); box-shadow: none; }
+.op-big-label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; opacity: .85; }
+.op-big-num { font-family: var(--font-display); font-size: 44px; font-weight: 700; line-height: 1.05; margin: 4px 0; }
+.op-big-sub { font-size: 13px; opacity: .9; }
+
+.op-kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+.op-kpi { background: #fff; border-radius: 12px; padding: 10px 8px; text-align: center; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
+.op-kpi span { display: block; font-size: 11px; color: var(--gris-texto); text-transform: uppercase; letter-spacing: .04em; }
+.op-kpi b { display: block; font-family: var(--font-display); font-size: 20px; line-height: 1.1; margin-top: 2px; }
+
+.op-cat-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.op-cat-row { display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 10px; background: #fff; border-radius: 10px; padding: 8px 12px; font-size: 14px; }
+.op-cat-bar { height: 8px; background: var(--niebla); border-radius: 99px; overflow: hidden; }
+.op-cat-bar div { height: 100%; background: var(--amarillo); border-radius: 99px; }
+
+/* ---------- Listas de gastos / mantenimiento / cobranza ---------- */
+.op-exp-list, .op-maint-list { display: flex; flex-direction: column; gap: 6px; }
+.op-exp-row, .op-maint-row { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 10px; padding: 12px 14px; font-size: 15px; font-weight: 600; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
+.op-exp-row.late { border-left: 4px solid var(--rojo); }
+.op-exp-icon { font-size: 22px; flex-shrink: 0; }
+.op-maint-row.pronto { border-left: 4px solid var(--amarillo); }
+.op-maint-row.vencido { border-left: 4px solid var(--rojo); }
+.op-mini-btn { background: var(--niebla); border: 2px solid #ddd; border-radius: 9px; padding: 8px 10px; font-family: var(--font-display); font-size: 14px; font-weight: 700; text-transform: uppercase; color: var(--asfalto); cursor: pointer; white-space: nowrap; }
+.op-mini-btn:active { border-color: var(--verde); background: #f0f7f3; }
+
+/* ---------- Chips (clientes, unidades, empresas) ---------- */
+.op-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.op-chip { background: #fff; border: 2px solid #ddd; border-radius: 999px; padding: 8px 14px; font-size: 14px; font-weight: 600; color: var(--asfalto); cursor: pointer; }
+.op-chip.active, .op-chip:active { border-color: var(--verde); background: #f0f7f3; }
+
+/* ---------- Código de patrón ---------- */
+.op-code-box { font-family: var(--font-display); font-size: 48px; font-weight: 700; letter-spacing: .28em; text-align: center; background: #fff; border: 3px solid var(--asfalto); box-shadow: inset 0 0 0 3px var(--amarillo); border-radius: 12px; padding: 18px 10px 18px 20px; margin: 8px 0 18px; }
+.op-code-input { font-family: var(--font-display); font-size: 30px; letter-spacing: .25em; text-align: center; text-transform: uppercase; }
+
+/* ---------- Auxilio ---------- */
+.op-call-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.op-call { display: flex; flex-direction: column; align-items: center; text-align: center; background: #fff; border-radius: var(--radius); padding: 16px 10px; text-decoration: none; color: var(--asfalto); box-shadow: 0 2px 10px rgba(0,0,0,.07); border: 2px solid transparent; min-height: 120px; }
+.op-call:active { border-color: var(--verde); }
+.op-call.mine { background: #FFF8E1; }
+.op-call-icon { font-size: 30px; }
+.op-call b { font-family: var(--font-display); font-size: 26px; line-height: 1.1; margin-top: 4px; }
+.op-call span:not(.op-call-icon) { font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: .03em; }
+.op-call small { font-size: 12px; color: var(--gris-texto); margin-top: 2px; }
+.op-steps { padding-left: 22px; margin: 0 0 18px; }
+.op-steps li { background: #fff; border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; font-size: 15px; line-height: 1.4; }
+
+/* ---------- Tabs: 5 pestañas ---------- */
+.op-tab-label { font-size: 11px; }
+@media (max-width: 360px) { .op-tab-label { font-size: 10px; } .op-week-nums b { font-size: 16px; } }

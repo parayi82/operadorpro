@@ -8,14 +8,15 @@
 // el usuario se queda viendo una versión vieja hasta borrar datos.
 // Con red-primero, si hay internet siempre ve lo último, y si no hay
 // internet (o el celular pierde señal a media carretera) puede seguir
-// abriendo el cascarón de la app en vez de una pantalla en blanco.
+// abriendo el cascarón de la app — incluida la pantalla de Auxilio
+// con los teléfonos de carretera — en vez de una pantalla en blanco.
 //
 // Las llamadas a /.netlify/functions/* y a Supabase NUNCA se
 // interceptan aquí (no se les llama respondWith) — son API calls,
 // no contenido cacheable.
 // ============================================================
 
-const CACHE_NAME = "operadorpro-shell-v1";
+const CACHE_NAME = "operadorpro-shell-v2";
 const APP_SHELL = [
   "/fleet-qr.html",
   "/index.html",
@@ -23,9 +24,12 @@ const APP_SHELL = [
   "/verificar.html",
   "/css/styles.css",
   "/css/fleet.css",
+  "/css/operador-ui.css",
   "/js/config.js",
   "/js/panel.js",
+  "/js/operador-ui.js",
   "/js/courses-data.js",
+  "/js/register-sw.js",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/manifest.webmanifest"
