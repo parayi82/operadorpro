@@ -3,12 +3,23 @@
 The agent definitions in this directory are installed from
 [msitarzewski/agency-agents](https://github.com/msitarzewski/agency-agents)
 (`scripts/install.sh --tool claude-code`), a collection of specialized
-Claude Code subagent personas organized by division (engineering, product,
-marketing, sales, security, etc.).
+Claude Code subagent personas organized by division.
 
-To update, re-clone the upstream repo and re-run:
+**Pruned to 4 divisions** relevant to this project: `engineering`, `security`,
+`testing`, `product` (90 agents). The upstream repo has ~20 divisions total
+(marketing, sales, GIS, healthcare, game-development, finance, etc.) that were
+left out to avoid cluttering the session context with irrelevant personas —
+re-run the install with a broader `--division` list below if a future need
+calls for one of those.
+
+To update or restore the full roster, re-clone the upstream repo and run:
 
 ```bash
+# same 4 divisions
+./scripts/install.sh --tool claude-code --path .claude/agents --no-interactive \
+  --division engineering,security,testing,product
+
+# everything
 ./scripts/install.sh --tool claude-code --path .claude/agents --no-interactive
 ```
 
